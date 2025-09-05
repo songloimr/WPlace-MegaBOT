@@ -6235,19 +6235,26 @@ function loadImage(area, no, preserveView = false) {
     const autoSelectBtn = document.getElementById('btn-auto-select');
     const autoSelectAccountsBtn = document.getElementById('btn-auto-select-accounts');
     const startBtn = document.getElementById('start');
-    const readyPixelEl = document.getElementById('ready-pixel');
-    const readyAccountBtn = document.getElementById('btn-ready-account');
+      const readyPixelEl = document.getElementById('ready-pixel');
+      let xpawToken = '';
+      let fpValue = '';
+      try { xpawToken = localStorage.getItem('last.captured.xpaw') || ''; fpValue = localStorage.getItem('last.captured.fp') || ''; } catch {}
+      const readyAccountBtn = document.getElementById('btn-ready-account');
     const readyAccountList = document.getElementById('ready-account-list');
     const readyTokenInput = document.getElementById('ready-token-input');
     // Listen for token events from local server (extension posts here)
     (function initTokenSse(){
       try {
-        const es = new EventSource('/api/events');
-        es.addEventListener('token', async (ev) => {
-          try {
-            const data = ev && ev.data ? JSON.parse(ev.data) : null;
-            const token = data && data.token ? String(data.token) : '';
-            if (!token) return;
+          const es = new EventSource('/api/events');
+          es.addEventListener('token', async (ev) => {
+            try {
+              const data = ev && ev.data ? JSON.parse(ev.data) : null;
+              const token = data && data.token ? String(data.token) : '';
+              const xpaw = data && data.xpaw ? String(data.xpaw) : '';
+              const fp = data && data.fp ? String(data.fp) : '';
+              if (xpaw) { xpawToken = xpaw; try { localStorage.setItem('last.captured.xpaw', xpaw); } catch {} }
+              if (fp) { fpValue = fp; try { localStorage.setItem('last.captured.fp', fp); } catch {} }
+              if (!token) return;
             const rp = document.getElementById('ready-popup');
             const isOpen = rp && !rp.hidden;
             if (isOpen && readyTokenInput) {
@@ -6781,13 +6788,13 @@ function loadImage(area, no, preserveView = false) {
       return rows;
     }
 
-    async function postBatch(area, no, colors, coords, t, jToken) {
-      try {
-        const res = await fetch('/api/pixel/' + encodeURIComponent(area) + '/' + encodeURIComponent(no), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ colors, coords, t, j: jToken })
-        });
+      async function postBatch(area, no, colors, coords, t, jToken, xpaw, fp) {
+        try {
+          const res = await fetch('/api/pixel/' + encodeURIComponent(area) + '/' + encodeURIComponent(no), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ colors, coords, t, j: jToken, xpaw, fp })
+          });
         const text = await res.text();
         let payload = null;
         try { payload = JSON.parse(text); } catch {}
@@ -6901,7 +6908,7 @@ if (startBtn) {
         if (take <= 0) continue;
         const colorsSlice = g.colors.slice(offset, offset + take);
         const coordsSlice = g.coords.slice(offset * 2, (offset + take) * 2);
-        const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, authToken, String(acc.token || ''));
+          const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, authToken, String(acc.token || ''), xpawToken, fpValue);
         if (r && r.status === 429) {
           hadRequestError = true;
           try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
@@ -7003,7 +7010,7 @@ if (startBtn) {
             assigned[j] = true;
           }
           if (colorsSlice.length === 0) continue;
-          const r = await postBatch(area, no, colorsSlice, coordsSlice, authToken, String(acc.token || ''));
+            const r = await postBatch(area, no, colorsSlice, coordsSlice, authToken, String(acc.token || ''), xpawToken, fpValue);
           if (r && r.status === 429) {
             hadRequestError = true;
             try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
