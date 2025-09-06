@@ -401,25 +401,27 @@ function startServer(port, host) {
       return;
     }
     // Receive token captured by extension and notify connected UIs
-    if (parsed.pathname === '/api/token' && req.method === 'POST') {
-      readJsonBody(req).then((body) => {
-        const token = body && typeof body.token === 'string' ? body.token : '';
-        const worldX = (body && (typeof body.worldX === 'string' || typeof body.worldX === 'number')) ? body.worldX : null;
-        const worldY = (body && (typeof body.worldY === 'string' || typeof body.worldY === 'number')) ? body.worldY : null;
-        if (!token) { res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ ok: false })); return; }
-        try {
-          const existing = readJson(SETTINGS_FILE, { cf_clearance: '', worldX: null, worldY: null });
-          const merged = { ...existing };
-          if (worldX != null) merged.worldX = Number(worldX);
-          if (worldY != null) merged.worldY = Number(worldY);
-          writeJson(SETTINGS_FILE, merged);
-        } catch {}
-        sseBroadcast('token', { token, worldX, worldY });
-        res.writeHead(204, { 'Access-Control-Allow-Origin': '*' });
-        res.end();
-      }).catch(() => { res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ ok: false })); });
-      return;
-    }
+      if (parsed.pathname === '/api/token' && req.method === 'POST') {
+        readJsonBody(req).then((body) => {
+          const token = body && typeof body.token === 'string' ? body.token : '';
+          const xpaw = body && typeof body.xpaw === 'string' ? body.xpaw : '';
+          const fp = body && typeof body.fp === 'string' ? body.fp : '';
+          const worldX = (body && (typeof body.worldX === 'string' || typeof body.worldX === 'number')) ? body.worldX : null;
+          const worldY = (body && (typeof body.worldY === 'string' || typeof body.worldY === 'number')) ? body.worldY : null;
+          if (!token) { res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ ok: false })); return; }
+          try {
+            const existing = readJson(SETTINGS_FILE, { cf_clearance: '', worldX: null, worldY: null });
+            const merged = { ...existing };
+            if (worldX != null) merged.worldX = Number(worldX);
+            if (worldY != null) merged.worldY = Number(worldY);
+            writeJson(SETTINGS_FILE, merged);
+          } catch {}
+          sseBroadcast('token', { token, xpaw, fp, worldX, worldY });
+          res.writeHead(204, { 'Access-Control-Allow-Origin': '*' });
+          res.end();
+        }).catch(() => { res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ ok: false })); });
+        return;
+      }
 
     // Favorites API
     if (parsed.pathname === '/api/favorites' && req.method === 'GET') {
@@ -504,17 +506,19 @@ function startServer(port, host) {
       const m = parsed.pathname.match(/^\/api\/pixel\/([^\/]+)\/([^\/]+)$/);
       const area = m && m[1] ? m[1] : '';
       const no = m && m[2] ? m[2] : '';
-      readJsonBody(req).then(async (body) => {
-        try {
-          const colors = Array.isArray(body && body.colors) ? body.colors : [];
-          const coords = Array.isArray(body && body.coords) ? body.coords : [];
-          const t = body && typeof body.t === 'string' ? body.t : '';
-          const jToken = body && typeof body.j === 'string' ? body.j : '';
-          if (!colors.length || !coords.length || !t || !jToken) {
-            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ error: 'invalid payload' }));
-            return;
-          }
+        readJsonBody(req).then(async (body) => {
+          try {
+            const colors = Array.isArray(body && body.colors) ? body.colors : [];
+            const coords = Array.isArray(body && body.coords) ? body.coords : [];
+            const t = body && typeof body.t === 'string' ? body.t : '';
+            const jToken = body && typeof body.j === 'string' ? body.j : '';
+            const fp = body && typeof body.fp === 'string' ? body.fp : '';
+            const xpaw = body && typeof body.xpaw === 'string' ? body.xpaw : '';
+            if (!colors.length || !coords.length || !t || !jToken || !fp || !xpaw) {
+              res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify({ error: 'invalid payload' }));
+              return;
+            }
           // Use cf_clearance stored on the specific account matching this token
           const accounts = readJson(ACCOUNTS_FILE, []);
           const acc = accounts.find(a => a && typeof a.token === 'string' && a.token === jToken);
@@ -525,30 +529,32 @@ function startServer(port, host) {
             res.end(JSON.stringify({ error: 'cf_clearance missing for account' }));
             return;
           }
-          const remotePath = `/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
-          const payload = JSON.stringify({ colors, coords, t });
+            const remotePath = `/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
+            const payload = JSON.stringify({ colors, coords, t, fp });
           
           try {
             const gotScraping = await getGotScrapingFn();
             if (gotScraping) {
               debugLog('proxy pixel POST begin (got-scraping)', { path: remotePath });
-              const r = await gotScraping({
-                url: 'https://backend.wplace.live' + remotePath,
-                method: 'POST',
-                headers: {
+                const headers = {
                   'User-Agent': 'Mozilla/5.0',
                   'Accept': '*/*',
                   'Origin': 'https://wplace.live',
                   'Referer': 'https://wplace.live/',
                   'Content-Type': 'text/plain;charset=UTF-8',
                   'Cookie': `j=${jToken}; cf_clearance=${cf}`
-                },
-                body: payload,
-                throwHttpErrors: false,
-                decompress: true,
-                agent: { https: HTTPS_AGENT },
-                timeout: { request: 30000 }
-              });
+                };
+                headers['x-pawtect-token'] = xpaw;
+                const r = await gotScraping({
+                  url: 'https://backend.wplace.live' + remotePath,
+                  method: 'POST',
+                  headers,
+                  body: payload,
+                  throwHttpErrors: false,
+                  decompress: true,
+                  agent: { https: HTTPS_AGENT },
+                  timeout: { request: 30000 }
+                });
               const status = r && (r.statusCode || r.status) || 0;
               const text = r && (typeof r.body === 'string' ? r.body : (r.body ? String(r.body) : ''));
               debugLog('proxy pixel POST end (got-scraping)', { status, bodyPreview: String(text || '').slice(0, 300) });
@@ -560,21 +566,23 @@ function startServer(port, host) {
               return;
             }
           } catch {}
-          const options = {
-            hostname: 'backend.wplace.live',
-            port: 443,
-            path: remotePath,
-            method: 'POST',
-            agent: HTTPS_AGENT,
-            headers: {
+            const headers = {
               'User-Agent': 'Mozilla/5.0',
               'Accept': '*/*',
               'Origin': 'https://wplace.live',
               'Referer': 'https://wplace.live/',
               'Content-Type': 'text/plain;charset=UTF-8',
               'Cookie': `j=${jToken}; cf_clearance=${cf}`
-            }
-          };
+            };
+            headers['x-pawtect-token'] = xpaw;
+            const options = {
+              hostname: 'backend.wplace.live',
+              port: 443,
+              path: remotePath,
+              method: 'POST',
+              agent: HTTPS_AGENT,
+              headers
+            };
           debugLog('proxy pixel POST begin', { path: remotePath, headers: { ...options.headers, Cookie: maskCookieHeader(options.headers.Cookie) } });
           const upstreamReq = https.request(options, (up) => {
             const chunks = [];
