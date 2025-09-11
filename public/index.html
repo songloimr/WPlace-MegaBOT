@@ -856,10 +856,8 @@
           <div class="controls-row" id="select-mode-controls">
             <div class="select-mode-wrap">
               <span id="select-mode-label-left" class="select-mode-label active" data-i18n="ready.selectMode.multi">Önce çok yerden seç</span>
-              <button id="select-mode-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Select mode">
-                <span class="select-mode-knob"></span>
-              </button>
               <span id="select-mode-label-right" class="select-mode-label" data-i18n="ready.selectMode.frame">Önce çerçeveyi seç</span>
+              <span id="select-mode-label-color" class="select-mode-label" data-i18n="ready.selectMode.color">Renge göre seç</span>
             </div>
           </div>
         </div>
@@ -6283,18 +6281,23 @@ function loadImage(area, no, preserveView = false) {
     const selectModeTrack = document.getElementById('select-mode-toggle');
     const selectModeLabelLeft = document.getElementById('select-mode-label-left');
     const selectModeLabelRight = document.getElementById('select-mode-label-right');
+    const selectModeLabelColor = document.getElementById('select-mode-label-color');
     let selectMode = 'multi';
     let autoMode = false;
     let autoStart = false;
 
     function updateSelectModeUi(){
-      try { if (selectModeTrack) selectModeTrack.classList.toggle('on', selectMode === 'frame'); } catch {}
-      try { if (selectModeTrack) selectModeTrack.setAttribute('aria-checked', selectMode === 'frame' ? 'true' : 'false'); } catch {}
+      try { if (selectModeTrack) selectModeTrack.setAttribute('data-mode', selectMode); } catch {}
       try { if (selectModeLabelLeft) selectModeLabelLeft.classList.toggle('active', selectMode === 'multi'); } catch {}
       try { if (selectModeLabelRight) selectModeLabelRight.classList.toggle('active', selectMode === 'frame'); } catch {}
+      try { if (selectModeLabelColor) selectModeLabelColor.classList.toggle('active', selectMode === 'color'); } catch {}
     }
     function setSelectMode(mode){
-      selectMode = (mode === 'frame') ? 'frame' : 'multi';
+      if (mode === 'frame' || mode === 'color') {
+        selectMode = mode;
+      } else {
+        selectMode = 'multi';
+      }
       updateSelectModeUi();
     }
     function updateAutoModeUi(){
@@ -6331,9 +6334,13 @@ function loadImage(area, no, preserveView = false) {
     if (autoModeLabelRight) autoModeLabelRight.addEventListener('click', () => { autoMode = true; try { localStorage.setItem('ready.autoMode','1'); } catch {}; updateAutoModeUi(); });
     if (autoStartLabelLeft) autoStartLabelLeft.addEventListener('click', () => { autoStart = false; try { localStorage.setItem('ready.autoStart','0'); } catch {}; updateAutoStartUi(); });
     if (autoStartLabelRight) autoStartLabelRight.addEventListener('click', () => { autoStart = true; try { localStorage.setItem('ready.autoStart','1'); } catch {}; updateAutoStartUi(); });
-    if (selectModeTrack) selectModeTrack.addEventListener('click', () => setSelectMode(selectMode === 'frame' ? 'multi' : 'frame'));
+    if (selectModeTrack) selectModeTrack.addEventListener('click', () => {
+      const next = selectMode === 'multi' ? 'frame' : (selectMode === 'frame' ? 'color' : 'multi');
+      setSelectMode(next);
+    });
     if (selectModeLabelLeft) selectModeLabelLeft.addEventListener('click', () => setSelectMode('multi'));
     if (selectModeLabelRight) selectModeLabelRight.addEventListener('click', () => setSelectMode('frame'));
+    if (selectModeLabelColor) selectModeLabelColor.addEventListener('click', () => setSelectMode('color'));
 
     function getAccountById(id) {
       const idStr = String(id);
@@ -6654,6 +6661,8 @@ function loadImage(area, no, preserveView = false) {
         if (selectMode === 'frame') {
           const prev = autoSelectDeleteMode; // unused placeholder
           addedCount = autoSelectFrameFirst(selItem, need);
+        } else if (selectMode === 'color') {
+          addedCount = autoSelectColorFirst(selItem, need);
         } else {
         let sx = start.x|0, sy = start.y|0;
         const totalCells = w * h;
@@ -6678,7 +6687,7 @@ function loadImage(area, no, preserveView = false) {
           if (sx >= w) { sx = 0; sy += 1; }
           if (sy >= h) { sy = 0; }
           traversed++;
-          }
+        }
         }
         updateReadySelectionLabel();
         updatePixelMarkers();
@@ -6772,6 +6781,45 @@ function loadImage(area, no, preserveView = false) {
         }
         const did = addPixelSelection(selItem, p.x, p.y, selectedOverrideColorId != null ? selectedOverrideColorId : null);
         if (did) added++;
+      }
+      return added;
+    }
+    function autoSelectColorFirst(selItem, need){
+      if (!selItem || !selItem.image) return 0;
+      const w = selItem.image.naturalWidth|0;
+      const h = selItem.image.naturalHeight|0;
+      if (!(w && h)) return 0;
+      const buckets = new Map();
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (!isOpaquePixel(selItem, x, y)) continue;
+          if (selectedOverrideColorId == null && isSamePaletteIdAsBase(selItem, x, y)) continue;
+          const pid = (selectedOverrideColorId != null && selectedOverrideColorId !== 0)
+            ? selectedOverrideColorId
+            : getItemPixelPaletteId(selItem, x, y);
+          if (pid == null) continue;
+          let arr = buckets.get(pid);
+          if (!arr) { arr = []; buckets.set(pid, arr); }
+          arr.push(x, y);
+        }
+      }
+      const keys = Array.from(buckets.keys()).sort((a,b) => a - b);
+      let added = 0;
+      for (const pid of keys) {
+        const coords = buckets.get(pid);
+        if (!coords) continue;
+        for (let i = 0; i < coords.length && added < need; i += 2) {
+          let canAdd = true;
+          if (pid != null && pid !== 0 && isPremiumColorId(pid)) {
+            const remainNow = getPremiumColorRemainingLimit(pid);
+            if (!(remainNow > 0)) canAdd = false;
+          }
+          if (canAdd) {
+            const did = addPixelSelection(selItem, coords[i], coords[i+1], selectedOverrideColorId != null ? selectedOverrideColorId : null);
+            if (did) added++;
+          }
+        }
+        if (added >= need) break;
       }
       return added;
     }
