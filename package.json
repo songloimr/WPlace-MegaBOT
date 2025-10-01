@@ -21,9 +21,7 @@
     "got-scraping"
   ],
   "dependencies": {
-    "axios": "^1.7.7",
     "got-scraping": "^4.1.2",
-    "pngjs": "^7.0.0",
-    "puppeteer": "^22.15.0"
+    "pngjs": "^7.0.0"
   }
 }

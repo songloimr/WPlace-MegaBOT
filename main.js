@@ -4,8 +4,6 @@ const http = require('http');
 const https = require('https');
 const zlib = require('zlib');
 const url = require('url');
-let axios; try { axios = require('axios'); } catch (e) { axios = null; }
-let puppeteer; try { puppeteer = require('puppeteer'); } catch (e) { puppeteer = null; }
 
 let DEBUG = !!(process.env.DEBUG_HTTP && String(process.env.DEBUG_HTTP) !== '0');
 let DEBUG_MASK = !(process.env.DEBUG_MASK === '0' || process.env.DEBUG_MASK === 'false');
@@ -26,61 +24,6 @@ function maskCookieHeader(cookieHeader) {
   return out;
 }
 function debugLog(...args) { if (DEBUG) { try { console.log('[debug]', ...args); } catch {} } }
-
-const HTTPS_AGENT = new https.Agent({ secureProtocol: 'TLSv1_2_method' });
-let axiosClient = null;
-if (axios) {
-  axiosClient = axios.create({ httpsAgent: HTTPS_AGENT, timeout: 15000, validateStatus: () => true });
-  axiosClient.interceptors.request.use((config) => {
-    try {
-      const headers = { ...(config.headers || {}) };
-      const cookieValue = headers.Cookie || headers.cookie || '';
-      if (cookieValue) {
-        const masked = maskCookieHeader(cookieValue);
-        headers.Cookie = masked;
-        headers.cookie = masked;
-      }
-      debugLog('HTTP GET', { url: config && config.url, headers });
-    } catch {}
-    return config;
-  });
-  axiosClient.interceptors.response.use((response) => {
-    try {
-      const data = response && response.data;
-      let preview = '';
-      if (typeof data === 'string') preview = data.slice(0, 300);
-      else {
-        try { preview = JSON.stringify(data).slice(0, 300); } catch { preview = String(data).slice(0, 300); }
-      }
-      debugLog('HTTP GET response', {
-        url: response && response.config && response.config.url,
-        status: response && response.status,
-        statusText: response && response.statusText,
-        bodyPreview: preview
-      });
-    } catch {}
-    return response;
-  }, (error) => {
-    try {
-      if (error && error.response) {
-        const data = error.response.data;
-        let preview = '';
-        if (typeof data === 'string') preview = data.slice(0, 300);
-        else {
-          try { preview = JSON.stringify(data).slice(0, 300); } catch { preview = String(data).slice(0, 300); }
-        }
-        debugLog('HTTP GET error', {
-          url: error.response && error.response.config && error.response.config.url,
-          status: error.response && error.response.status,
-          bodyPreview: preview
-        });
-      } else {
-        debugLog('HTTP GET network error', { message: error && error.message ? error.message : String(error) });
-      }
-    } catch {}
-    return Promise.reject(error);
-  });
-}
 
 
 let gotScrapingFn = null;
@@ -216,21 +159,6 @@ async function requestMeLikePython(opts) {
 }
 
 
-async function fetchMeAxios(cf_clearance, token) {
-  if (!axios) return null;
-  const headers = {
-    'User-Agent': 'Mozilla/5.0',
-    'Accept': 'application/json, text/plain, */*',
-    'Cookie': `cf_clearance=${cf_clearance || ''}; j=${token || ''}`
-  };
-  debugLog('axios GET /me', { headers: { ...headers, Cookie: maskCookieHeader(headers.Cookie) } });
-  const resp = await axiosClient.get('https://backend.wplace.live/me', { headers });
-  if (!resp || resp.status !== 200) return null;
-  const data = resp.data;
-  if (data && typeof data === 'object') return data;
-  try { return JSON.parse(String(data || '')); } catch { return null; }
-}
-
 async function fetchMe(cf_clearance, token) {
   debugLog('GET /me via got-scraping (requestMeLikePython)');
   const r = await requestMeLikePython({ cf_clearance, j: token, silent: true });
@@ -238,24 +166,6 @@ async function fetchMe(cf_clearance, token) {
   try { return JSON.parse(r.body); } catch { return null; }
 }
 
-async function fetchMePuppeteer(cf_clearance, token) {
-  if (!puppeteer) return null;
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  try {
-    const page = await browser.newPage();
-    const cookies = [];
-    if (cf_clearance) cookies.push({ name: 'cf_clearance', value: String(cf_clearance), domain: 'backend.wplace.live', path: '/', httpOnly: false, secure: true });
-    if (token) cookies.push({ name: 'j', value: String(token), domain: 'backend.wplace.live', path: '/', httpOnly: false, secure: true });
-    if (cookies.length) await page.setCookie(...cookies);
-    debugLog('puppeteer GET /me with cookies set');
-    const res = await page.goto('https://backend.wplace.live/me', { waitUntil: 'networkidle2', timeout: 20000 });
-    if (!res || res.status() !== 200) return null;
-    const text = await page.evaluate(() => document.body && document.body.innerText || '');
-    try { return JSON.parse(text); } catch { return null; }
-  } finally {
-    try { await browser.close(); } catch {}
-  }
-}
 
 async function purchaseProduct(cf_clearance, token, productId, amount) {
   const payload = JSON.stringify({ product: { id: productId, amount } });
@@ -963,36 +873,17 @@ function main() {
   
   let port = 3000;
   let host = 'localhost';
-  let getMe = false;
   let cookieHeader = null;
-  let cfOpt = null;
   let jOpt = null;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
-    if (a === '--get-me') getMe = true;
-    else if (a.startsWith('--cookie=')) cookieHeader = a.slice('--cookie='.length);
+    if (a.startsWith('--cookie=')) cookieHeader = a.slice('--cookie='.length);
     else if (a === '--cookie' && i + 1 < args.length) { cookieHeader = args[++i]; }
-    else if (a.startsWith('--cf=')) cfOpt = a.slice('--cf='.length);
-    else if (a === '--cf' && i + 1 < args.length) { cfOpt = args[++i]; }
     else if (a.startsWith('--j=')) jOpt = a.slice('--j='.length);
     else if (a === '--j' && i + 1 < args.length) { jOpt = args[++i]; }
     else if (a.startsWith('--port=')) port = parseInt(a.split('=')[1], 10) || port;
     else if (a === '--port' && i + 1 < args.length) { port = parseInt(args[++i], 10) || port; }
     else if (a.startsWith('--host=')) host = a.split('=')[1] || host;
-  }
-
-  if (getMe) {
-    requestMeLikePython({ cookie: cookieHeader, cf_clearance: cfOpt, j: jOpt })
-      .then(() => {})
-      .catch((err) => {
-        const msg = (err && err.message) ? String(err.message) : String(err);
-        const code = (err && err.code) ? String(err.code) : '';
-        if (!(code === 'ECONNRESET' || (msg && msg.toUpperCase && msg.toUpperCase().includes('ECONNRESET')))) {
-          console.error('Request failed:', msg);
-          process.exitCode = 1;
-        }
-      });
-    return;
   }
 
   startServer(port, host);
