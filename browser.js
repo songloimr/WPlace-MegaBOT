@@ -17,16 +17,15 @@ async function init() {
     }
     fs.mkdirSync(userDataDir);
 
-
     return connect({
         headless: false,
-        turnstile: true,
+        turnstile: false,
         connectOption: {
             defaultViewport: null,
         },
         customConfig: {
             userDataDir,
-            chromePath: '/Applications/Chromium.app/Contents/MacOS/Chromium'
+            //chromePath: '/Applications/Chromium.app/Contents/MacOS/Chromium'
             //chromePath: 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
             //chromePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
         },
@@ -52,18 +51,7 @@ async function startBrowser() {
             if (!request.url.endsWith('.js')) {
                 return { body }
             }
-            const captchaCallback = '.captcha={token:'
-            if (body.includes(captchaCallback)) {
-                console.log(request.method, request.url)
-
-                const startBrowserIdx = body.indexOf(captchaCallback)
-                const endIdx = body.indexOf(',', startBrowserIdx)
-                const searchValue = body.slice(startBrowserIdx, endIdx)
-
-                const [, tokenVar] = searchValue.split(':')
-                body = body
-                    .replace(searchValue, captchaCallback + `window.cf(${tokenVar})`)
-            } else if (body.includes('set_user_id')) {
+            if (body.includes('set_user_id')) {
                 console.log(request.method, request.url)
 
                 const regex = /function\s+(\w+)\s*\(.*?\){/
@@ -116,12 +104,20 @@ async function startBrowser() {
         httpOnly: true,
         secure: true
     })
+    await page.setRequestInterception(true)
     page.setDefaultNavigationTimeout(60_000)
-
-    await page.goto("https://wplace.live");
-    await page.exposeFunction('cf', (token) => {
-        return (captchaToken = token)
+    page.on('request', (request) => {
+        if (request.url().includes('/favorite') && request.method() === 'POST') {
+            request.abort()
+        } else if (request.url().includes('/pixel/') && request.method() === 'POST') {
+            const { t } = JSON.parse(request.postData())
+            captchaToken = t
+            request.abort()
+        } else {
+            request.continue()
+        }
     })
+    await page.goto("https://wplace.live");
     return {
         signBody: (user_id, url, body) => {
             return page.evaluate((user_id, url, body) => {
@@ -130,37 +126,37 @@ async function startBrowser() {
         },
         captchaToken: (reset = false) => {
             if (reset) {
-                page.evaluate(() => window.cf(''))
+                captchaToken = ''
             }
             return captchaToken
         },
         openPage: async (url) => {
-            return browser.newPage().then(page => {
-                page.on('domcontentloaded', async () => {
-                    if (!fs.existsSync(DATA_STORE_FILE)) {
-                        return;
-                    }
-                    const data = fs.readFileSync(DATA_STORE_FILE, 'utf8');
-                    await page.evaluate((data) => {
-                        const db = JSON.parse(data)
-                        const keys = Object.keys(db)
-                        keys.forEach(key => {
-                            localStorage.setItem(key, db[key])
-                        })
-                    }, data)
-                    await new Promise(r => setTimeout(r, 5_000))
-                    const intervalId = setInterval(async () => {
-                        try {
-                            const data = await page.evaluate(() => JSON.stringify(localStorage, null, 4))
-                            fs.writeFileSync(DATA_STORE_FILE, data, 'utf8');
-                        } catch (error) {
-                            clearInterval(intervalId)
-                            console.log('clearInterval', intervalId)
-                        }
-                    }, 5_000)
-                })
-                page.goto(url)
+            const subPage = await browser.newPage()
+            subPage.on('domcontentloaded', async () => {
+                if (!fs.existsSync(DATA_STORE_FILE)) {
+                    return;
+                }
+                const data = fs.readFileSync(DATA_STORE_FILE, 'utf8');
+                await subPage.evaluate((data) => {
+                    const db = JSON.parse(data)
+                    const keys = Object.keys(db)
+                    keys.forEach(key => {
+                        localStorage.setItem(key, db[key])
+                    })
+                }, data)
             })
+            await subPage.goto(url)
+            await new Promise(r => setTimeout(r, 500))
+            await subPage.reload()
+            await new Promise(r => setTimeout(r, 5_000))
+            const intervalId = setInterval(async () => {
+                try {
+                    const data = await subPage.evaluate(() => JSON.stringify(localStorage, null, 4))
+                    fs.writeFileSync(DATA_STORE_FILE, data, 'utf8');
+                } catch (error) {
+                    clearInterval(intervalId)
+                }
+            }, 5_000)
         }
     }
 }

@@ -445,7 +445,7 @@ async function startServer(port, host) {
           account.extraColorsBitmap = Math.floor(me.extraColorsBitmap)
 
           if (account.autobuy === "max" || account.autobuy === "rec") {
-            const productId = acct.autobuy === 'max' ? 70 : 80;
+            const productId = account.autobuy === 'max' ? 70 : 80;
             const droplets = Number(account.droplets || 0);
             const quantity = Math.floor(droplets / 500);
             if (quantity > 1) {
