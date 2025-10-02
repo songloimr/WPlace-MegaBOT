@@ -847,9 +847,6 @@
             <button id="btn-auto-select-accounts" class="app-btn" type="button" data-i18n="ready.autoSelectAccounts">Auto select account</button>
           </div>
           <div class="controls-row">
-            <input id="ready-token-input" type="text" placeholder="Token" data-i18n-placeholder="ready.tokenPlaceholder" />
-          </div>
-          <div class="controls-row">
             <button id="btn-auto-select" class="app-btn" type="button" data-i18n="ready.autoSelect">Otomatik seç</button>
             <button id="start" class="app-btn" type="button" data-i18n="ready.start">Başlat</button>
           </div>
@@ -6228,7 +6225,6 @@ function loadImage(area, no, preserveView = false) {
       try { xpawToken = localStorage.getItem('last.captured.xpaw') || ''; } catch {}
       const readyAccountBtn = document.getElementById('btn-ready-account');
     const readyAccountList = document.getElementById('ready-account-list');
-    const readyTokenInput = document.getElementById('ready-token-input');
     // Listen for token events from local server (extension posts here)
     (function initTokenSse(){
       try {
@@ -6242,8 +6238,7 @@ function loadImage(area, no, preserveView = false) {
               if (!token) return;
             const rp = document.getElementById('ready-popup');
             const isOpen = rp && !rp.hidden;
-            if (isOpen && readyTokenInput) {
-              readyTokenInput.value = token;
+            if (isOpen) {
               try { updateStartEnabled(); } catch {}
               showToast(t('messages.tokenPastedFromExtension'), 'success', 1200);
               // Auto start on token if enabled
@@ -6943,10 +6938,10 @@ function loadImage(area, no, preserveView = false) {
     function updateStartEnabled() {
       try {
         if (!startBtn) return;
-        const hasToken = !!(readyTokenInput && readyTokenInput.value && readyTokenInput.value.trim().length > 0);
+        
         const hasAccounts = getSelectedAccountsSortedByCapacityDesc().length > 0;
         const hasAnyPixel = readyGlobalMode ? (readyGlobalSelected.size > 0) : (getReadySelectedCount() > 0);
-        startBtn.disabled = !(hasToken && hasAccounts && hasAnyPixel);
+        startBtn.disabled = !(hasAccounts && hasAnyPixel);
       } catch {}
     }
 
@@ -6978,10 +6973,10 @@ function loadImage(area, no, preserveView = false) {
 
 if (startBtn) {
   startBtn.addEventListener('click', () => {
-    const hasToken = !!(readyTokenInput && readyTokenInput.value && readyTokenInput.value.trim().length > 0);
+    
     const hasAccounts = getSelectedAccountsSortedByCapacityDesc().length > 0;
     const hasAnyPixel = readyGlobalMode ? (readyGlobalSelected.size > 0) : (getReadySelectedCount() > 0);
-    if (!(hasToken && hasAccounts && hasAnyPixel)) {
+    if (!(hasAccounts && hasAnyPixel)) {
       showToast(t('messages.startRequirementsMissing'), 'error', 2500);
       try { updateStartEnabled(); } catch {}
       return;
@@ -6989,7 +6984,7 @@ if (startBtn) {
     const sel = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
     if (!readyGlobalMode && !sel) { showToast(t('messages.noSelectedImage'), 'error', 2000); return; }
     const data = buildSelectedExportForItem(sel);
-    const authToken = (readyTokenInput && readyTokenInput.value) ? String(readyTokenInput.value) : '';
+    
     // Her durumda (tek tile veya değil) pikselleri world koordinata göre area/no bazında gruplandır
   const groups = (function(){
     try {
@@ -7043,7 +7038,7 @@ if (startBtn) {
         if (take <= 0) continue;
         const colorsSlice = g.colors.slice(offset, offset + take);
         const coordsSlice = g.coords.slice(offset * 2, (offset + take) * 2);
-          const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, authToken, String(acc.token || ''), xpawToken);
+          const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, '', String(acc.token || ''), xpawToken);
         if (r && r.status === 429) {
           hadRequestError = true;
           try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
@@ -7537,16 +7532,15 @@ if (autoMode && assignedCount > 0 && !hadRequestError) {
         const sel = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
         if (!sel) return;
         const data = buildSelectedExportForItem(sel);
-        const t = (readyTokenInput && readyTokenInput.value) ? readyTokenInput.value : '';
-        console.log({ colors: data.colors, coords: data.coords, t });
+        console.log({ colors: data.colors, coords: data.coords});
       } catch {}
     }
 
-    if (readyTokenInput) {
-      readyTokenInput.addEventListener('input', () => {
-        updateStartEnabled();
-      });
-    }
+    // if (readyTokenInput) {
+    //   readyTokenInput.addEventListener('input', () => {
+    //     updateStartEnabled();
+    //   });
+    // }
   </script>
 </body>
 </html> 
