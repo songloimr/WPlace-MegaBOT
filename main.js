@@ -56,23 +56,7 @@ function readJson(filePath, fallback) {
 function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
-// Simple SSE hub for live events from extension → UI
 
-
-
-function deactivateAccountByToken(jToken) {
-  try {
-    if (!jToken) return;
-    const accounts = readJson(ACCOUNTS_FILE, []);
-    const idx = accounts.findIndex(a => a && typeof a.token === 'string' && a.token === jToken);
-    if (idx === -1) return;
-    const current = accounts[idx] || {};
-    const updated = { ...current, active: false };
-    accounts[idx] = updated;
-    writeJson(ACCOUNTS_FILE, accounts);
-    console.log('[auto] account deactivated due to 500 when posting pixel:', current && current.name ? current.name : '(unknown)');
-  } catch { }
-}
 async function purchaseProduct(token, productId, quantity) {
   return impit.fetch('https://backend.wplace.live/purchase', {
     method: 'POST',
@@ -235,6 +219,11 @@ async function startServer(port, host) {
       res.status(500).json({ error: 'failed to delete' });
     }
   });
+
+  app.head('/api/captcha-ready', (req, res) => {
+    sseBroadcast('token', { ready: true })
+    res.status(204).end();
+  })
 
   // Pixel API
   app.post('/api/pixel/:area/:no', async (req, res) => {

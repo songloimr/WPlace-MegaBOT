@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const COOKIE_FILE = path.join(__dirname, 'db', 'browser-cookie.txt');
 const DATA_STORE_FILE = path.join(__dirname, 'db', 'browser-data.json');
+let SERVER_URL = null;
 
 function readCookie() {
     return fs.readFileSync(COOKIE_FILE, 'utf8');
@@ -112,6 +113,11 @@ async function startBrowser() {
         } else if (request.url().includes('/pixel/') && request.method() === 'POST') {
             const { t } = JSON.parse(request.postData())
             captchaToken = t
+            if (SERVER_URL) {
+                fetch(SERVER_URL + '/api/captcha-ready', {
+                    method: 'HEAD'
+                })
+            }
             request.abort()
         } else {
             request.continue()
@@ -131,6 +137,7 @@ async function startBrowser() {
             return captchaToken
         },
         openPage: async (url) => {
+            SERVER_URL = url
             const subPage = await browser.newPage()
             subPage.on('domcontentloaded', async () => {
                 if (!fs.existsSync(DATA_STORE_FILE)) {

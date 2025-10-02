@@ -6227,35 +6227,26 @@ function loadImage(area, no, preserveView = false) {
     const readyAccountList = document.getElementById('ready-account-list');
     // Listen for token events from local server (extension posts here)
     (function initTokenSse(){
-      try {
-          const es = new EventSource('/api/events');
-          es.addEventListener('token', async (ev) => {
-            try {
-              const data = ev && ev.data ? JSON.parse(ev.data) : null;
-              const token = data && data.token ? String(data.token) : '';
-              const xpaw = data && data.xpaw ? String(data.xpaw) : '';
-              if (xpaw) { xpawToken = xpaw; try { localStorage.setItem('last.captured.xpaw', xpaw); } catch {} }
-              if (!token) return;
-            const rp = document.getElementById('ready-popup');
-            const isOpen = rp && !rp.hidden;
-            if (isOpen) {
-              try { updateStartEnabled(); } catch {}
-              showToast(t('messages.tokenPastedFromExtension'), 'success', 1200);
-              // Auto start on token if enabled
-              try {
-                const startBtn = document.getElementById('start');
-                const canStart = startBtn && !startBtn.disabled;
-                if (autoStart && canStart) {
-                  await new Promise(r => setTimeout(r, 50));
-                  startBtn.click();
-                }
-              } catch {}
-            } else {
-              try { localStorage.setItem('last.captured.token', token); } catch {}
+      const es = new EventSource('/api/events');
+      es.addEventListener('token', async (ev) => {
+        if (!autoStart) {
+          return;
+        }
+        showToast(t('messages.tokenPastedFromExtension'), 'success', 1200);
+        try {
+          const rp = document.getElementById('ready-popup');
+          const isOpen = rp && !rp.hidden;
+          if (isOpen) {
+            updateStartEnabled();
+            const startBtn = document.getElementById('start');
+            const canStart = startBtn && !startBtn.disabled;
+            if (canStart) {
+              await new Promise(r => setTimeout(r, 100));
+              startBtn.click();
             }
-          } catch {}
-        });
-      } catch {}
+          }
+        } catch {}
+      });
     })();
     const autoModeTrack = document.getElementById('auto-mode-toggle');
     const autoModeLabelLeft = document.getElementById('auto-mode-label-left');
