@@ -906,8 +906,6 @@
             <input id="account-name-input" type="text" placeholder="Örn: Ana hesap" data-i18n-placeholder="form.accountNamePlaceholder" />
             <label for="account-token-input" data-i18n="form.accountTokenLabel">Hesap tokeni</label>
             <input id="account-token-input" type="text" placeholder="Örn: eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder" />
-            <label for="account-cf-input">cf_clearance</label>
-            <input id="account-cf-input" type="text" placeholder="cf_clearance" />
             <input id="account-id-input" type="hidden" />
           </div>
           <div class="modal-footer split">
@@ -1943,7 +1941,6 @@
     const accountCancelBtn = document.getElementById('btn-account-cancel');
     const accountSaveBtn = document.getElementById('btn-account-save');
     const shopBackBtn = document.getElementById('btn-shop-back');
-    const accountCfInput = document.getElementById('account-cf-input');
     let signDragging = false;
     let resizingItem = null;
     let resizeStartX = 0, resizeStartY = 0, resizeOrigW = 0, resizeOrigH = 0;
@@ -4884,7 +4881,6 @@ function loadImage(area, no, preserveView = false) {
       try {
         accountNameInput.value = '';
         accountTokenInput.value = '';
-        if (accountCfInput) accountCfInput.value = '';
         accountIdInput.value = '';
         accountNameInput.focus();
       } catch {}
@@ -4897,7 +4893,6 @@ function loadImage(area, no, preserveView = false) {
       try {
         accountNameInput.value = row.name || '';
         accountTokenInput.value = row.token || '';
-        if (accountCfInput) accountCfInput.value = row.cf_clearance || '';
         accountIdInput.value = String(row.id || '');
         accountNameInput.focus();
       } catch {}
@@ -5752,11 +5747,6 @@ function loadImage(area, no, preserveView = false) {
         const id = (accountIdInput.value || '').trim();
         const name = (accountNameInput.value || '').trim();
         const token = (accountTokenInput.value || '').trim();
-        const cf_clearance = (accountCfInput && accountCfInput.value) ? accountCfInput.value.trim() : '';
-        if (!name || !token || !cf_clearance || cf_clearance.length < 30) {
-          showToast('cf_clearance zorunlu (min 30 karakter).', 'error', 2500);
-          return;
-        }
         try {
           try { await loadAccounts(); } catch {}
           try {
@@ -5774,7 +5764,7 @@ function loadImage(area, no, preserveView = false) {
             const res = await fetch('/api/accounts/' + id, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, token, cf_clearance })
+              body: JSON.stringify({ name, token })
             });
             if (!res.ok) return;
             try { await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' }); } catch {}
@@ -5782,7 +5772,7 @@ function loadImage(area, no, preserveView = false) {
             const res = await fetch('/api/accounts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, token, cf_clearance })
+              body: JSON.stringify({ name, token })
             });
             if (!res.ok) return;
             try {
