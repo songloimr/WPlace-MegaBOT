@@ -1,33 +1,18 @@
-  <p align="center">
-    Translations ➜&nbsp;
-      <a href="docs/TR.md"><img src="https://flagcdn.com/256x192/tr.png" width="48" alt="Turkey Flag"></a>
-      <a href="docs/DE.md"><img src="https://flagcdn.com/256x192/de.png" width="48" alt="Germany Flag"></a>
-      <a href="docs/ES.md"><img src="https://flagcdn.com/256x192/es.png" width="48" alt="Spain Flag"></a>
-      <a href="docs/FR.md"><img src="https://flagcdn.com/256x192/fr.png" width="48" alt="France Flag"></a>
-      <a href="docs/RU.md"><img src="https://flagcdn.com/256x192/ru.png" width="48" alt="Russia Flag"></a>
-      <a href="docs/JA.md"><img src="https://flagcdn.com/256x192/jp.png" width="48" alt="Japan Flag"></a>
-      <a href="docs/CN.md"><img src="https://flagcdn.com/256x192/cn.png" width="48" alt="China Flag"></a>
-  </p>
-  <br>
   <br>
   <p align="center"><strong>🎬┃ Video Preview</strong></p>
 
-  <p align="center">
-    <video src="https://github.com/user-attachments/assets/f655b939-d1a7-4449-b7dc-e50463e53c37" width="720" height="400" controls></video>
-  </p>
-  <p align="center"><strong>New feature usage</strong></p>
-
  <p align="center">
-    <video src="https://github.com/user-attachments/assets/80409e34-79a3-42ab-b298-c062e7ffe1c1" width="720" height="400" controls></video>
+    <video src="https://files.catbox.moe/ngbyno.mp4" width="720" height="400" controls></video>
   </p>
   ---
 
   > [!NOTE]
-  > **Hello, after the new measures were introduced, I decided to develop this bot, and it was completed in just one day. Due to the measures, it seems impossible to create a fully automated bot for now. ~~Previously, thanks to an exploit, we could draw from 12 accounts in one second with a single verification (12 * 62 = <strong>744</strong> pixels/s if accounts were full).~~ After the update, this vulnerability has been fixed, so you will need to obtain a token again for each account submission. If you're ready, I've explained how to use it below.**
+  > This project is a fork of WPlace-UltraBot.
+  > It modifies the drawing logic to reduce the risk of account bans.
 
   ---
 
-  <p align="center"><strong>WPlace UltraBOT</strong></p>
+  <p align="center"><strong>WPlace MegaBOT</strong></p>
 
   <p align="center">
     You can add your desired pixels to <a href="https://wplace.live" target="_blank">WPlace</a> with your multiple accounts.
@@ -59,7 +44,6 @@
       ```bash
       npm start
       ```
-    3. Open `http://localhost:3000` in your browser.
 
   <details open>
     <summary><h2>📖┃Tutorial</h2></summary>
@@ -72,27 +56,11 @@
 
   ---
 
-  ![Part 2](https://i.imgur.com/taF0I2T.png)
-
-  Open a new tab and go to this link: `chrome://extensions/`<br>
-  Enable developer mode. <br>
-
-  ![](https://i.imgur.com/oe42A42.png)
-
-  Click "Load unpacked". <br>
-
-  ![](https://i.imgur.com/jPyzOr3.png)
-
-  Select the `WPlace-Helper` folder. <br>
-
-  ---
-
   ![Part 3](https://i.imgur.com/YVyvw3a.png)
 
   Go to the wplace.live page. <br>
   Press F12.<br>
   On the page that opens, select the 'Application' section from the top (if you can't find it, click on the place I've shown in yellow and select it).<br>
-  Click on `cf_clearance` and copy its value from below.<br>
 
   ---
 
