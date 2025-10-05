@@ -45,7 +45,7 @@ async function startBrowser() {
 
     const interceptManager = new RequestInterceptionManager(client)
     await interceptManager.intercept({
-        urlPattern: 'https://wplace.live/_app/immutable/*',
+        urlPattern: 'https://wplace.live/_app/immutable/chunks/*',
         resourceType: "Script",
         requestStage: 'Response',
         modifyResponse({ body, event: { request } }) {
@@ -57,7 +57,7 @@ async function startBrowser() {
 
                 const regex = /function\s+(\w+)\s*\(.*?\){/
                 const func = {}
-                body.matchAll(/function\s+.*?\}/g)
+                Array.from(body.matchAll(/function\s+.*?\}/g))
                     .map(match => match[0] ? match[0].trim() : [])
                     .forEach(fn => {
                         if (fn.includes('set_user_id')) {
@@ -95,15 +95,17 @@ async function startBrowser() {
         localStorage.setItem('muted', 1)
         localStorage.setItem('PARAGLIDE_LOCALE', 'en')
     })
-
+    const cookieValue = readCookie()
     await browser.setCookie({
         name: 'j',
-        value: readCookie(),
+        value: cookieValue,
         domain: '.backend.wplace.live',
         path: '/',
         expires: 1759960610,
         httpOnly: true,
-        secure: true
+        secure: true,
+        session: false,
+        size: cookieValue.length + 1
     })
     await page.setRequestInterception(true)
     page.setDefaultNavigationTimeout(60_000)
@@ -139,21 +141,19 @@ async function startBrowser() {
         openPage: async (url) => {
             SERVER_URL = url
             const subPage = await browser.newPage()
-            subPage.on('domcontentloaded', async () => {
-                if (!fs.existsSync(DATA_STORE_FILE)) {
-                    return;
-                }
-                const data = fs.readFileSync(DATA_STORE_FILE, 'utf8');
-                await subPage.evaluate((data) => {
-                    const db = JSON.parse(data)
-                    const keys = Object.keys(db)
-                    keys.forEach(key => {
-                        localStorage.setItem(key, db[key])
-                    })
-                }, data)
-            })
-            await subPage.goto(url)
-            await new Promise(r => setTimeout(r, 500))
+
+            await subPage.goto(url, { waitUntil: 'domcontentloaded' })
+            if (!fs.existsSync(DATA_STORE_FILE)) {
+                return;
+            }
+            const data = fs.readFileSync(DATA_STORE_FILE, 'utf8');
+            await subPage.evaluate((data) => {
+                const db = JSON.parse(data)
+                const keys = Object.keys(db)
+                keys.forEach(key => {
+                    localStorage.setItem(key, db[key])
+                })
+            }, data)
             await subPage.reload()
             await new Promise(r => setTimeout(r, 5_000))
             const intervalId = setInterval(async () => {
