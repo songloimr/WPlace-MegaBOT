@@ -13,11 +13,19 @@ const LANGS = [
 ];
 function getSavedLang() { try { return localStorage.getItem('lang') || I18N_DEFAULT_LANG; } catch { return I18N_DEFAULT_LANG; } }
 function saveLang(lang) { try { localStorage.setItem('lang', lang); } catch { } }
+// Fetch helpers: chuẩn hóa thao tác mạng và kiểm tra trạng thái
+async function fetchOk(url, options = {}) {
+    const res = await fetch(url, { cache: 'no-store', ...options });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res;
+}
+async function fetchJson(url, options = {}) {
+    const res = await fetchOk(url, options);
+    return res.json();
+}
 async function loadI18n(lang) {
     try {
-        const res = await fetch('/i18n/' + encodeURIComponent(lang) + '.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error('i18n load failed');
-        I18N_STRINGS = await res.json();
+        I18N_STRINGS = await fetchJson('/i18n/' + encodeURIComponent(lang) + '.json');
     } catch {
         I18N_STRINGS = {};
     }
@@ -183,26 +191,22 @@ function layoutLangSwitch() {
     const sidebarEl = document.getElementById('sidebar');
     const formEl = document.getElementById('form');
     if (!ls || !sidebarEl || !formEl) return;
-    const sb = sidebarEl.getBoundingClientRect();
-    const fm = formEl.getBoundingClientRect();
-    const y = Math.min(sb.top, fm.top) + 4;
-    const xLeft = sb.right + 12;
-    const xRight = fm.left - 12;
+    const sidebarRect = sidebarEl.getBoundingClientRect();
+    const formRect = formEl.getBoundingClientRect();
+    const topY = Math.min(sidebarRect.top, formRect.top) + 4;
+    const xLeft = sidebarRect.right + 12;
+    const xRight = formRect.left - 12;
     const center = (xLeft + xRight) / 2;
     const width = Math.min(220, Math.max(140, xRight - xLeft));
     ls.style.width = String(width) + 'px';
-    ls.style.top = String(y) + 'px';
+    ls.style.top = String(topY) + 'px';
     ls.style.left = String(center - (width / 2)) + 'px';
 }
 window.addEventListener('resize', layoutLangSwitch);
 window.addEventListener('scroll', layoutLangSwitch, { passive: true });
 
 function layoutSoundControl() { /* CSS handles positioning now */ }
-window.addEventListener('resize', layoutSoundControl);
-window.addEventListener('scroll', layoutSoundControl, { passive: true });
-// Re-layout after fonts load to ensure correct measurements
-if (document.fonts && document.fonts.ready) { document.fonts.ready.then(() => layoutSoundControl()); }
-// No JS positioning needed; kept for backward compatibility
+// JS listeners không cần thiết vì CSS đã xử lý vị trí
 
 
 ensureLangSwitch(); bindLangDropdownEvents(); initI18n(); layoutLangSwitch();
@@ -223,8 +227,7 @@ const favSaveBtn = document.getElementById('fav-save-btn');
 let favoritesCache = [];
 async function refreshFavorites() {
     try {
-        const res = await fetch('/api/favorites', { cache: 'no-store' });
-        favoritesCache = await res.json();
+        favoritesCache = await fetchJson('/api/favorites');
     } catch {
         favoritesCache = [];
     }
@@ -232,13 +235,13 @@ async function refreshFavorites() {
 function getFavorites() { return favoritesCache; }
 async function addFavorite(entry) {
     try {
-        await fetch('/api/favorites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+        await fetchOk('/api/favorites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
     } catch { }
     await refreshFavorites();
 }
 async function removeFavorite(entry) {
     try {
-        await fetch('/api/favorites', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+        await fetchOk('/api/favorites', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
     } catch { }
     await refreshFavorites();
 }
