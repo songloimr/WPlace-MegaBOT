@@ -1,207 +1,63 @@
-  <br>
-  <p align="center"><strong>🎬┃ Video Preview</strong></p>
+<p align="center">
+  <strong>WPlace MegaBOT</strong>
+</p>
 
- <p align="center">
-    <video src="https://files.catbox.moe/ngbyno.mp4" width="720" height="400" controls></video>
-  </p>
-  ---
+<p align="center">
+  Fork of WPlace-UltraBot focused on safer painting logic to minimize account ban risks.
+</p>
 
-  > [!NOTE]
-  > This project is a fork of WPlace-UltraBot.
-  > It modifies the drawing logic to reduce the risk of account bans.
+<p align="center">
+  <a href="https://wplace.live" target="_blank">WPlace</a> | <a href="#installation">Install</a> | <a href="#run">Run</a>
+</p>
 
-  ---
+---
 
-  <p align="center"><strong>WPlace MegaBOT</strong></p>
+## 🎬 Demo Video
 
-  <p align="center">
-    You can add your desired pixels to <a href="https://wplace.live" target="_blank">WPlace</a> with your multiple accounts.
-  </p>
+<p align="center">
+  <video src="https://files.catbox.moe/ngbyno.mp4" width="720" height="400" controls></video>
+</p>
 
-  ---
+- Direct link: https://files.catbox.moe/ngbyno.mp4
 
-  <p align="center"><strong>🚀┃ How to install the bot:</strong></p>
+---
 
-  <p align="center">
-  The bot is easy to set up but hard to master. All kidding aside, it might seem difficult to use at first, but after the latest measures, there's no other bot that works like this, so it will be worth your effort.
-  </p>
+## Table of Contents
+- Features
+- Requirements
+- Installation
+- Run
 
-  <br>
+## Features
+- Multi-language UI with quick switching.
+- Favorites management (save/reload locations).
+- Notification sound with volume control.
+- Optimized network operations and error handling.
+- Safer painting logic to reduce ban risks.
 
-  ### 🔧┃Installation (EN)
+## Requirements
+- Node.js >= 18.18.0
+- Google Chrome browser (latest version recommended).
 
-  - Requirements:
-    - Node.js >= 18.18.0
+## Installation
+1) Clone the repository and enter the folder:
 
-  - Steps:
-    1. Install dependencies:
-      
-      ```bash
-      npm install
-      ```
-    2. Start the app:
-      
-      ```bash
-      npm start
-      ```
+```bash
+git clone https://github.com/songloimr/WPlace-MegaBOT
+cd WPlace-MegaBOT
+```
 
-  <details open>
-    <summary><h2>📖┃Tutorial</h2></summary>
+2) Install dependencies:
 
-  ---
+```bash
+npm install
+```
 
-  ![Part 1](https://i.imgur.com/yS9093x.png)
+3) Optional configuration:
+- Default server: `http://localhost:3000/`. Change in `main.js` or use a reverse proxy.
 
-  When you go to localhost:3000, you should see a page like this.<br>
+## Run
 
-  ---
-
-  ![Part 3](https://i.imgur.com/YVyvw3a.png)
-
-  Go to the wplace.live page. <br>
-  Press F12.<br>
-  On the page that opens, select the 'Application' section from the top (if you can't find it, click on the place I've shown in yellow and select it).<br>
-
-  ---
-
-  ![Part 4](https://i.imgur.com/tR8pS53.png)
-
-  Go back to the bot.<br>
-  Click on the "Accounts" button, then click the "Add Account" button. Paste the value you copied into the field labeled 'cf_clearance'  <br>
-  Note ! <br>
-  With the latest update, they have taken countermeasures, so you now need to enter a cf_clearance value for each account. To do this quickly, just go to the wplace.live page in an incognito tab and get the token. You don't need to log in.
-
-
-
-  ---
-
-  ![Part 5](https://i.imgur.com/vJkPMx8.png)
-
-  Go to wplace.live, and when you click on the extension from the top, it should look like this.<br>
-  After making sure the "pixel token" section is enabled, try to paint a pixel on the map normally. <br>
-
-  ![Part 5 (Error)](https://i.imgur.com/uZmJDad.png)
-
-  If you get the error you see on the screen, it means you are on the right track. Click on the extension again, and the "World X" and "World Y" information for the place you tried to paint will appear. Copy them.
-
-  ---
-
-  ![Part 6](https://i.imgur.com/LniE1E8.png)
-
-  When you enter the World X and World Y coordinates and click the 'fetch' button, a map like the one in the image should appear.
-
-  ---
-
-  ![Part 7](https://i.imgur.com/vJkPMx8.png)
-
-  Go back to the previous page, click on the extension, and copy the "Account Token" value.
-
-  ---
-
-  ![Part 8](https://i.imgur.com/8sjhH1L.png)
-
-  Next, you'll be taken to the Accounts section. Click the "Add Account" button. The page shown above will then appear.
-
-  ![Part 8](https://i.imgur.com/jf6W8NV.png)
-
-  You can enter any name for the account. However, in the "Account Token" field below, paste the value you copied in the previous step. Finally, click "Add".
-
-  ---
-
-  ![Part 9](https://i.imgur.com/DJUEywj.png)
-
-  After you've added as many accounts as you want, you can see the total number of pixels and your available pixels for all your accounts in the top right corner.
-
-  The image you upload is automatically converted to the free color palettes available on the site and is uploaded that way. This system will be improved further in the future.
-
-  Once you upload an image using the Upload Image button:
-
-  On the top left of the image, the number of pixels required for the image will be displayed.
-
-  On the top right of the image, there's a lock button. When you lock it, you can't move the image. Clicking the 'X' will delete the image.
-
-  You can see all your uploaded images in the bar on the left. If you can't find an image on the page, just click on it in the bar, and it will take you directly to the image.
-
-  ---
-
-  ![Part 10](https://i.imgur.com/Dzt1p3o.png)
-
-  Click the Ready button. In the window that appears, click Select Account to choose your active accounts. When you're done, click Select Account again to close the window.
-
-  ---
-
-  ![Part 11](https://i.imgur.com/QKJRVL9.png)
-
-  When you zoom in on the image, every transparent pixel you fill will be colored with the corresponding color from your uploaded image, and you can only place pixels within the image's boundaries. If you select a specific color, you can paint anywhere you want, up to your maximum pixel capacity.
-
-  ---
-
-  ![Part 12](https://i.imgur.com/vJkPMx8.png)
-
-  Return to the wplace page and since the previous token has expired, try to send a new pixel and copy the new pixel token.
-
-  ---
-
-  ![Part 13](https://i.imgur.com/wDp07pH.png)
-
-  Then, return to our page, paste the value into the 'token' field, and click 'Start'.
-
-  ---
-
-  ![Part 14](https://i.imgur.com/iQTH5TR.png)
-
-  If you have done everything correctly, you should receive a notification like this, and the changes should have been processed on the map. That's all there is to it; you can create any image you want by repeating these steps.
-
-  </details>
-
-
-  <br>
-
-  > [!IMPORTANT]
-  > <p><sub><strong>1.</strong> In the Accounts section, if you click on 'Check Pixel', you can manually check the remaining pixels for that account. Normally, this is done automatically every 90 seconds.</sub></p>
-  > <p><sub><strong>2.</strong> Account tokens last for about 3-4 hours. During the automatic account check, if a token has expired, the account will become inactive. You can re-activate it by entering the new token in the Edit section and clicking Check Pixel.</sub></p>
-  > <p><sub><strong>3.</strong> Once the submission token appears on the panel, you need to be quick. If you are too slow, the token will expire and you will get a 403 refresh error.</sub></p>
-
-  <br>
-
-
-  Since the entire project was prepared in one day, please don't forget to report any shortcomings you see or features you'd like to request.
-
-
-  ---
-
-
-
-
-
-
-  <p align="center">
-    <img src="https://i.imgur.com/msR5dM9.png" alt="Main"/>
-  </p>
-
-  ---
-
-  ### 📋┃To-do
-
-  - [x] Translations [TR/USA]  
-  - [ ] Fix script bugs  
-  - [x] Tutorials
-
-
-  ---
-
-
-  <p align="center">
-    <a href="#"><img src="https://komarev.com/ghpvc/?username=xacter&repo=WPlace-UltraBOT&style=for-the-badge&label=Views:&color=gray"/></a>
-  </p>
-
-  ---
-
-
-
-
-
-
-
-
-
+```bash
+npm start
+```
