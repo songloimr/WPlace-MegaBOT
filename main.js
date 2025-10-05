@@ -323,7 +323,6 @@ async function startServer(port, host) {
     res.json(accounts);
   });
 
-
   const updateAccount = async (req, res) => {
     const { id } = req.params
 
@@ -437,7 +436,7 @@ async function startServer(port, host) {
             const productId = account.autobuy === 'max' ? 70 : 80;
             const droplets = Number(account.droplets || 0);
             const quantity = Math.floor(droplets / 500);
-            if (quantity > 1) {
+            if (quantity > 0) {
               const purchaseResult = await purchaseProduct(account.token, productId, quantity);
               if (purchaseResult) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -477,22 +476,9 @@ async function startServer(port, host) {
 }
 
 function main() {
-  const args = process.argv.slice(2);
 
   let port = 3000;
   let host = 'localhost';
-  let cookieHeader = null;
-  let jOpt = null;
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (a.startsWith('--cookie=')) cookieHeader = a.slice('--cookie='.length);
-    else if (a === '--cookie' && i + 1 < args.length) { cookieHeader = args[++i]; }
-    else if (a.startsWith('--j=')) jOpt = a.slice('--j='.length);
-    else if (a === '--j' && i + 1 < args.length) { jOpt = args[++i]; }
-    else if (a.startsWith('--port=')) port = parseInt(a.split('=')[1], 10) || port;
-    else if (a === '--port' && i + 1 < args.length) { port = parseInt(args[++i], 10) || port; }
-    else if (a.startsWith('--host=')) host = a.split('=')[1] || host;
-  }
 
   startServer(port, host);
 }
