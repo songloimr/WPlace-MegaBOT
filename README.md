@@ -20,6 +20,8 @@
 
 - Direct link: https://files.catbox.moe/ngbyno.mp4
 
+![](https://i.imgur.com/vpsXygG.png)
+
 ---
 
 ## Table of Contents
@@ -30,6 +32,7 @@
 
 ## Features
 - Multi-language UI with quick switching.
+- Proxy support (HTTP).
 - Favorites management (save/reload locations).
 - Notification sound with volume control.
 - Optimized network operations and error handling.
