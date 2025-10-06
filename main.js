@@ -7,17 +7,23 @@ const cors = require('cors');
 const { Readable } = require('stream');
 const { startBrowser } = require('./browser');
 
-const impit = new Impit({
-  browser: "chrome", // or "firefox"
-  ignoreTlsErrors: true,
-  followRedirects: true,
-  headers: {
-    'sec-gpc': '1',
-    'origin': 'https://wplace.live',
-    'referer': 'https://wplace.live/',
-    'dnt': '1'
+function createImpit(impitOptions = {}) {
+  if (impitOptions.proxyUrl) {
+    impitOptions.proxyUrl = 'http://' + impitOptions.proxyUrl
   }
-});
+  return new Impit({
+    browser: "chrome", // or "firefox"
+    ignoreTlsErrors: true,
+    followRedirects: true,
+    ...impitOptions,
+    headers: {
+      'sec-gpc': '1',
+      'origin': 'https://wplace.live',
+      'referer': 'https://wplace.live/',
+      'dnt': '1'
+    }
+  });
+}
 
 let DEBUG = !!(process.env.DEBUG_HTTP && String(process.env.DEBUG_HTTP) !== '0');
 let DEBUG_MASK = !(process.env.DEBUG_MASK === '0' || process.env.DEBUG_MASK === 'false');
@@ -57,8 +63,8 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-async function purchaseProduct(token, productId, quantity) {
-  return impit.fetch('https://backend.wplace.live/purchase', {
+async function purchaseProduct({ proxy, token }, productId, quantity) {
+  return createImpit({ proxyUrl: proxy || undefined }).fetch('https://backend.wplace.live/purchase', {
     method: 'POST',
     headers: {
       'cookie': `j=${token || ''}`
@@ -72,10 +78,10 @@ async function purchaseProduct(token, productId, quantity) {
     return null
   });
 }
-async function fetchMe(token) {
-  return impit.fetch('https://backend.wplace.live/me', {
+async function fetchMe({ proxy, token }) {
+  return createImpit({ proxyUrl: proxy || undefined }).fetch('https://backend.wplace.live/me', {
     headers: {
-      'cookie': `j=${token || ''}`
+      'cookie': 'j=' + token
     }
   }).then(res => res.json()).catch(err => {
     debugLog('[fetchMe] Error occurred:', err.message);
@@ -118,7 +124,7 @@ async function startServer(port, host) {
     const remoteUrl = `https://backend.wplace.live/files/s0/tiles/${encodeURIComponent(area)}/${encodeURIComponent(no)}.png`;
 
     try {
-      const response = await impit.fetch(remoteUrl, {
+      const response = await fetch(remoteUrl, {
         headers: {
           'accept': 'image/webp,*/*'
         }
@@ -238,7 +244,7 @@ async function startServer(port, host) {
         return res.status(400).json({ error: 'captcha token not ready' });
       }
       const accounts = readJson(ACCOUNTS_FILE, []);
-      const { fp, id } = accounts.find(a => a.token === jToken);
+      const { fp, id, proxy } = accounts.find(a => a.token === jToken);
 
       const remotePath = `https://backend.wplace.live/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
       const payload = {
@@ -255,7 +261,10 @@ async function startServer(port, host) {
         'x-pawtect-variant': 'koala'
       };
 
-      const response = await impit.fetch(remotePath, {
+      const response = await createImpit({
+        proxyUrl: proxy || undefined,
+        timeout: 15_000
+      }).fetch(remotePath, {
         method: 'POST',
         body: JSON.stringify(payload),
         headers
@@ -297,7 +306,13 @@ async function startServer(port, host) {
       }
       const payload = JSON.stringify(payloadObj);
 
-      const response = await impit.fetch('https://backend.wplace.live/purchase', {
+      const accounts = readJson(ACCOUNTS_FILE, []);
+      const { proxy } = accounts.find(a => a.token === jToken) || {};
+
+      const response = await createImpit({
+        proxyUrl: proxy || undefined,
+        timeout: 15_000
+      }).fetch('https://backend.wplace.live/purchase', {
         method: 'POST',
         body: payload,
         headers: {
@@ -333,13 +348,14 @@ async function startServer(port, host) {
     }
 
     const account = { ...accounts[idx] }
-    const { name, token, pixelRight, active, autobuy } = req.body
+    const { name, token, pixelRight, active, autobuy, proxy } = req.body
 
     name && (account.name = name)
     token && (account.token = token)
     pixelRight && (account.pixelRight = pixelRight)
     active && (account.active = active)
     autobuy && (account.autobuy = autobuy)
+    proxy && (account.proxy = proxy)
 
     accounts[idx] = account
     writeJson(ACCOUNTS_FILE, accounts);
@@ -372,6 +388,9 @@ async function startServer(port, host) {
       if (!token) {
         return res.status(400).json({ error: 'token required' });
       }
+      if (proxy && !/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[0-9_]+:[0-9]+$/.test(proxy)) {
+        return res.status(400).json({ error: 'invalid proxy format' });
+      }
 
       const accounts = readJson(ACCOUNTS_FILE, []);
       const existing = accounts.find(a => a && typeof a.token === 'string' && a.token === token);
@@ -380,7 +399,7 @@ async function startServer(port, host) {
         return res.status(409).json({ error: 'account already exists' });
       }
 
-      const response = await fetchMe(token);
+      const response = await fetchMe({ token });
       if (!response || !response.charges) {
         return res.status(400).json({ error: 'invalid token' });
       }
@@ -423,7 +442,7 @@ async function startServer(port, host) {
       const account = accounts[idx]
 
       for (let index = 0; index < 2; index++) {
-        const me = await fetchMe(account.token);
+        const me = await fetchMe(account);
 
         account.active = Boolean(me && me.charges && !me.banned)
         if (account.active) {
@@ -435,11 +454,11 @@ async function startServer(port, host) {
           if (account.autobuy === "max" || account.autobuy === "rec") {
             const productId = account.autobuy === 'max' ? 70 : 80;
             const droplets = Number(account.droplets || 0);
-            const quantity = Math.floor(droplets / 500);
-            if (quantity > 0) {
-              const purchaseResult = await purchaseProduct(account.token, productId, quantity);
+            if (droplets >= 500) {
+              const quantity = Math.floor(droplets / 500);
+              const purchaseResult = await purchaseProduct(account, productId, quantity);
               if (purchaseResult) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(r => setTimeout(r, 1000));
                 continue;
               }
             }

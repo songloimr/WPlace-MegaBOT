@@ -851,6 +851,7 @@ const accountTokenInput = document.getElementById('account-token-input');
 const accountIdInput = document.getElementById('account-id-input');
 const accountCancelBtn = document.getElementById('btn-account-cancel');
 const accountSaveBtn = document.getElementById('btn-account-save');
+const proxyInput = document.getElementById('proxy-input');
 const shopBackBtn = document.getElementById('btn-shop-back');
 let signDragging = false;
 let resizingItem = null;
@@ -3799,6 +3800,7 @@ function showAccountForm() {
         accountNameInput.value = '';
         accountTokenInput.value = '';
         accountIdInput.value = '';
+        proxyInput.value = '';
         accountNameInput.focus();
     } catch { }
 }
@@ -3811,6 +3813,7 @@ function openEditAccount(row) {
         accountNameInput.value = row.name || '';
         accountTokenInput.value = row.token || '';
         accountIdInput.value = String(row.id || '');
+        proxyInput.value = row.proxy || '';
         accountNameInput.focus();
     } catch { }
 
@@ -4664,6 +4667,7 @@ if (accountSaveBtn && accountsTbody) {
         const id = (accountIdInput.value || '').trim();
         const name = (accountNameInput.value || '').trim();
         const token = (accountTokenInput.value || '').trim();
+        const proxy = (proxyInput.value || '').trim();
         try {
             try { await loadAccounts(); } catch { }
             try {
@@ -4682,7 +4686,7 @@ if (accountSaveBtn && accountsTbody) {
                 const res = await fetch('/api/accounts/' + id, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token })
+                    body: JSON.stringify({ name, token, proxy })
                 });
                 accountSaveBtn.disabled = res.ok;
                 if (!res.ok) return;
@@ -4691,7 +4695,7 @@ if (accountSaveBtn && accountsTbody) {
                 const res = await fetch('/api/accounts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token })
+                    body: JSON.stringify({ name, token, proxy })
                 });
                 accountSaveBtn.disabled = res.ok;
                 if (!res.ok) return;
