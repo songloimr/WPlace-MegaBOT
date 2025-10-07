@@ -5687,6 +5687,15 @@ function autoSelectFrameFirst(selItem, need) {
     }
     return added;
 }
+function getColorLuminance(colorId) {
+    const palette = (ACTIVE_PALETTE && Array.isArray(ACTIVE_PALETTE)) ? ACTIVE_PALETTE : PALETTE;
+    const colorInfo = palette.find(p => p.id === colorId);
+    if (!colorInfo || !colorInfo.rgb) {
+        return 256;
+    }
+    const [r, g, b] = colorInfo.rgb;
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+}
 function autoSelectColorFirst(selItem, need) {
     if (!selItem || !selItem.image) return 0;
     const w = selItem.image.naturalWidth | 0;
@@ -5706,7 +5715,15 @@ function autoSelectColorFirst(selItem, need) {
             arr.push(x, y);
         }
     }
-    const keys = Array.from(buckets.keys()).sort((a, b) => a - b);
+    const keys = Array.from(buckets.keys()).sort((a, b) => {
+        const aIsPremium = isPremiumColorId(a);
+        const bIsPremium = isPremiumColorId(b);
+        if (aIsPremium && !bIsPremium) return -1;
+        if (!aIsPremium && bIsPremium) return 1;
+        const lumA = getColorLuminance(a);
+        const lumB = getColorLuminance(b);
+        return lumA - lumB;
+    });
     let added = 0;
     for (const pid of keys) {
         const coords = buckets.get(pid);
