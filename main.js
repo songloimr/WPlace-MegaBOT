@@ -388,7 +388,7 @@ async function startServer(port, host) {
       if (!token) {
         return res.status(400).json({ error: 'token required' });
       }
-      if (proxy && !/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[0-9_]+:[0-9]+$/.test(proxy)) {
+      if (proxy && !/^[a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@[0-9\.]+:[0-9]+$/.test(proxy)) {
         return res.status(400).json({ error: 'invalid proxy format' });
       }
 

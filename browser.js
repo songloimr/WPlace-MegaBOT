@@ -101,7 +101,7 @@ async function startBrowser() {
         value: cookieValue,
         domain: '.backend.wplace.live',
         path: '/',
-        expires: 1759960610,
+        expires: 1799960610,
         httpOnly: true,
         secure: true,
         session: false,
