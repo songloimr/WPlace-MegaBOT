@@ -25,6 +25,7 @@ function createImpit(impitOptions = {}) {
   });
 }
 
+
 let DEBUG = !!(process.env.DEBUG_HTTP && String(process.env.DEBUG_HTTP) !== '0');
 let DEBUG_MASK = !(process.env.DEBUG_MASK === '0' || process.env.DEBUG_MASK === 'false');
 function enableDebug() { DEBUG = true; }
@@ -36,6 +37,8 @@ const DB_DIR = path.resolve(process.cwd(), 'db');
 const ACCOUNTS_FILE = path.join(DB_DIR, 'accounts.json');
 const SETTINGS_FILE = path.join(DB_DIR, 'settings.json');
 const FAVORITES_FILE = path.join(DB_DIR, 'favorites.json');
+
+const PROXY_REGEX = /^[a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@[0-9\.]+:[0-9]+$/
 
 function ensureDb() {
   try { fs.mkdirSync(DB_DIR, { recursive: true }); } catch { }
@@ -59,6 +62,10 @@ function readJson(filePath, fallback) {
   }
 }
 
+function isValidToken(token) {
+  return typeof token === 'string' && token.startsWith('eyJh') && token.split('.').length === 3
+}
+
 function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
@@ -79,7 +86,10 @@ async function purchaseProduct({ proxy, token }, productId, quantity) {
   });
 }
 async function fetchMe({ proxy, token }) {
-  return createImpit({ proxyUrl: proxy || undefined }).fetch('https://backend.wplace.live/me', {
+  return createImpit({
+    proxyUrl: proxy || undefined,
+    timeout: 20_000
+  }).fetch('https://backend.wplace.live/me', {
     headers: {
       'cookie': 'j=' + token
     }
@@ -341,8 +351,9 @@ async function startServer(port, host) {
   const updateAccount = async (req, res) => {
     const { id } = req.params
 
+    const targetId = Number(id);
     const accounts = readJson(ACCOUNTS_FILE, []);
-    const idx = accounts.findIndex(a => a.id && a.id === +id);
+    const idx = accounts.findIndex(a => a && typeof a.id === 'number' && a.id === targetId);
     if (idx < 0) {
       return res.status(404).json({ error: 'account not found' });
     }
@@ -351,16 +362,34 @@ async function startServer(port, host) {
     const { name, token, pixelRight, active, autobuy, proxy } = req.body
 
     name && (account.name = name)
-    token && (account.token = token)
     pixelRight && (account.pixelRight = pixelRight)
-    active && (account.active = active)
     autobuy && (account.autobuy = autobuy)
-    proxy && (account.proxy = proxy)
+
+    if (token) {
+      if (!isValidToken(token)) {
+        return res.status(400).json({ error: 'invalid token' });
+      }
+      account.token = token
+    }
+
+    if (typeof active === 'boolean') {
+      account.active = active
+    }
+
+    if (typeof proxy === 'string' && proxy !== account.proxy) {
+      if (proxy === '') {
+        account.proxy = ''
+      } else if (!PROXY_REGEX.test(proxy)) {
+        return res.status(400).json({ error: 'invalid proxy format' });
+      }
+      account.proxy = proxy
+    }
 
     accounts[idx] = account
     writeJson(ACCOUNTS_FILE, accounts);
     res.status(200).json(account)
   }
+
   app.route('/api/accounts/:id')
     .put(updateAccount)
     .patch(updateAccount)
@@ -388,7 +417,7 @@ async function startServer(port, host) {
       if (!token) {
         return res.status(400).json({ error: 'token required' });
       }
-      if (proxy && !/^[a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@[0-9\.]+:[0-9]+$/.test(proxy)) {
+      if (proxy && !PROXY_REGEX.test(proxy)) {
         return res.status(400).json({ error: 'invalid proxy format' });
       }
 
