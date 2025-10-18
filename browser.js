@@ -64,11 +64,13 @@ async function startBrowser() {
                             func.set_user_id = fn.match(regex)[0]
                         } else if (fn.includes('request_url')) {
                             func.request_url = fn.match(regex)[1]
+                        } else if (fn.includes('get_load_payload')) {
+                            func.get_load_payload = fn.match(regex)[1]
                         } else if (fn.includes('get_pawtected_endpoint_payload')) {
                             func.get_pawtected_endpoint_payload = fn.match(regex)[1]
                         }
                     });
-                body = body.replace(func.set_user_id, func.set_user_id + `window.sign=(id,url,body)=>{m.set_user_id(id);${func.request_url}(url);return ${func.get_pawtected_endpoint_payload}(JSON.stringify(body))};`)
+                body = body.replace(func.set_user_id, func.set_user_id + `window.pawtectMe=${func.get_load_payload};window.set_user_id=(id)=>{m.set_user_id(id)};window.sign=(url,body)=>{${func.request_url}(url);return ${func.get_pawtected_endpoint_payload}(JSON.stringify(body))};`)
             }
             return { body }
         }
@@ -127,10 +129,16 @@ async function startBrowser() {
     })
     await page.goto("https://wplace.live");
     return {
-        signBody: (user_id, url, body) => {
-            return page.evaluate((user_id, url, body) => {
-                return window.sign(user_id, url, body)
-            }, user_id, url, body)
+        pawtectMe: () => {
+            return page.evaluate(() => window.pawtectMe())
+        },
+        setUserId: (user_id) => {
+            return page.evaluate((user_id) => window.set_user_id(user_id), user_id)
+        },
+        signBody: (url, body) => {
+            return page.evaluate((url, body) => {
+                return window.sign(url, body)
+            }, url, body)
         },
         captchaToken: (reset = false) => {
             if (reset) {

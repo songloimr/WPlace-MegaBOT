@@ -113,7 +113,7 @@ function sseBroadcast(eventName, payload) {
 
 async function startServer(port, host) {
   ensureDb()
-  const { signBody, captchaToken, openPage } = await startBrowser()
+  const { setUserId, pawtectMe, signBody, captchaToken, openPage } = await startBrowser()
   const app = express();
 
   // Middleware
@@ -250,31 +250,53 @@ async function startServer(port, host) {
       if (!colors.length || !coords.length || !jToken) {
         return res.status(400).json({ error: 'invalid payload' });
       }
-      if (!captchaToken()) {
-        return res.status(400).json({ error: 'captcha token not ready' });
-      }
+      // if (!captchaToken()) {
+      //   return res.status(400).json({ error: 'captcha token not ready' });
+      // }
       const accounts = readJson(ACCOUNTS_FILE, []);
       const { fp, id, proxy } = accounts.find(a => a.token === jToken);
+
+      const impit = createImpit({
+        proxyUrl: proxy || undefined,
+        timeout: 15_000
+      })
 
       const remotePath = `https://backend.wplace.live/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
       const payload = {
         colors,
         coords,
-        t: captchaToken(),
+        // t: captchaToken(),
         fp: fp || crypto.createHash('md5').update(jToken).digest('hex')
       };
+      await setUserId(id)
+      const pawtect = await pawtectMe()
 
-      const xpaw = await signBody(id, remotePath, payload);
+      await impit.fetch('https://backend.wplace.live/pawtect/load', {
+        method: 'POST',
+        body: JSON.stringify({
+          pawtectMe: pawtect,
+          "paint-the": "world",
+          "but-not": "using-bots",
+          security: "/.well-known/security.txt"
+        }),
+        headers: {
+          'cookie': `j=${jToken}`
+        }
+      }).then(e => {
+        if (e.status !== 204) {
+          captchaToken(true)
+          return Readable.fromWeb(e.body).pipe(e)
+        }
+      })
+
+      const xpaw = await signBody(remotePath, payload);
       const headers = {
         'cookie': `j=${jToken};`,
         'x-pawtect-token': xpaw,
         'x-pawtect-variant': 'koala'
       };
 
-      const response = await createImpit({
-        proxyUrl: proxy || undefined,
-        timeout: 15_000
-      }).fetch(remotePath, {
+      const response = await impit.fetch(remotePath, {
         method: 'POST',
         body: JSON.stringify(payload),
         headers
