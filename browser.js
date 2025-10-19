@@ -114,7 +114,8 @@ async function startBrowser() {
     page.on('request', (request) => {
         if (request.url().includes('/favorite') && request.method() === 'POST') {
             request.abort()
-        } else if (request.url().includes('/pixel/') && request.method() === 'POST') {
+        } else if (request.url().includes('/pixel/')) {
+            if (request.method() === 'POST') {
             const { t } = JSON.parse(request.postData())
             captchaToken = t
             if (SERVER_URL) {
@@ -123,6 +124,22 @@ async function startBrowser() {
                 })
             }
             request.abort()
+                return;
+            } else if (request.method() === 'GET') {
+                const regex = /pixel\/([0-9]+)\/([0-9]+)\?x/
+                const match = request.url().match(regex)
+                if (match) {
+                    page.evaluate((match) => {
+                        const [, x, y] = match
+                        const top = document.querySelector('div.disable-pinch-zoom>div.gap-2')
+                        top.innerHTML = `<button class="btn btn-primary btn-md mt-5">X:${x} Y: ${y}</button>`
+                        setTimeout(() => {
+                            top.innerHTML = ''
+                        }, 10_000)
+                    }, match)
+                }
+            }
+            request.continue()
         } else {
             request.continue()
         }
