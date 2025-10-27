@@ -18,6 +18,10 @@ function createImpit(impitOptions = {}) {
     ...impitOptions,
     headers: {
       'sec-gpc': '1',
+      'sec-fetch-site': 'same-site',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-dest': 'empty',
+      'content-type': 'text/plain;charset=UTF-8',
       'origin': 'https://wplace.live',
       'referer': 'https://wplace.live/',
       'dnt': '1'
@@ -113,7 +117,7 @@ function sseBroadcast(eventName, payload) {
 
 async function startServer(port, host) {
   ensureDb()
-  const { setUserId, pawtectMe, signBody, captchaToken, openPage } = await startBrowser()
+  const { pawtectMe, signBody, captchaToken, openPage } = await startBrowser()
   const app = express();
 
   // Middleware
@@ -262,14 +266,12 @@ async function startServer(port, host) {
       })
 
       const remotePath = `https://backend.wplace.live/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
-      const payload = {
+      const payload = JSON.stringify({
         colors,
         coords,
-        // t: captchaToken(),
         fp: fp || crypto.createHash('md5').update(jToken).digest('hex')
-      };
-      await setUserId(id)
-      const pawtect = await pawtectMe()
+      });
+      const pawtect = await pawtectMe(id)
 
       await impit.fetch('https://backend.wplace.live/pawtect/load', {
         method: 'POST',
@@ -291,14 +293,14 @@ async function startServer(port, host) {
 
       const xpaw = await signBody(remotePath, payload);
       const headers = {
-        'cookie': `j=${jToken};`,
+        'cookie': `j=${jToken}`,
         'x-pawtect-token': xpaw,
         'x-pawtect-variant': 'koala'
       };
 
       const response = await impit.fetch(remotePath, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: payload,
         headers
       });
       captchaToken(true)
