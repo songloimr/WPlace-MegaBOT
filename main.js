@@ -21,7 +21,6 @@ function createImpit(impitOptions = {}) {
       'sec-fetch-site': 'same-site',
       'sec-fetch-mode': 'cors',
       'sec-fetch-dest': 'empty',
-      'content-type': 'text/plain;charset=UTF-8',
       'origin': 'https://wplace.live',
       'referer': 'https://wplace.live/',
       'dnt': '1'
@@ -291,13 +290,20 @@ async function startServer(port, host) {
         }
       })
 
-      const xpaw = await signBody(remotePath, payload);
+      const requestUrl = `https://backend.wplace.live/files/s0/tiles/${encodeURIComponent(area)}/${encodeURIComponent(no)}.png`;
+      const xpaw = await signBody(requestUrl, payload);
       const headers = {
         'cookie': `j=${jToken}`,
         'x-pawtect-token': xpaw,
         'x-pawtect-variant': 'koala'
       };
-
+      await impit.fetch(remotePath, {
+        method: 'OPTIONS',
+        headers: {
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'x-pawtect-token,x-pawtect-variant',
+        }
+      })
       const response = await impit.fetch(remotePath, {
         method: 'POST',
         body: payload,
