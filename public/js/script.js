@@ -5558,7 +5558,8 @@ if (autoSelectBtn) {
             : { x: 0, y: 0 };
         const w = selItem.image.naturalWidth | 0;
         const h = selItem.image.naturalHeight | 0;
-        const need = limit - already;
+        const randomOffset = Math.floor(Math.random() * 6) + 1;
+        const need = (limit - already) >= 500 ? (500 - randomOffset) : (limit - already);
         let addedCount = 0;
 
         if (selectMode === 'frame') {
