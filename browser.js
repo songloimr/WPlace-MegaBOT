@@ -75,20 +75,6 @@ async function startBrowser() {
         }
     })
 
-    // await page.evaluateOnNewDocument(() => {
-    //     localStorage.removeItem('lp')
-    //     //localStorage.setItem('location', JSON.stringify({ lng: 103.95030643628093, lat: 19.888507647599837, zoom: 14 }))
-    //     localStorage.setItem('view-rules', true)
-    //     localStorage.setItem('void-message-2', true)
-    //     localStorage.setItem('showed:shop-profile-picture', true)
-    //     localStorage.setItem('showed:region-leaderboard', true)
-    //     localStorage.setItem('showed:info', true)
-    //     localStorage.setItem('show-all-colors', false)
-    //     localStorage.setItem('show-paint-more-than-one-pixel-msg', false)
-    //     localStorage.setItem('selected-color', 5)
-    //     localStorage.setItem('muted', 1)
-    //     localStorage.setItem('PARAGLIDE_LOCALE', 'en')
-    // })
     await page.setCacheEnabled(false)
     await page.setBypassServiceWorker(true)
     await page.setRequestInterception(true)
@@ -96,7 +82,7 @@ async function startBrowser() {
         await page.evaluate(() => {
             setInterval(() => {
                 document.title = 'Do Not Close This Tab'
-            }, 5_000)
+            }, 2_000)
         });
     })
     page.on('response', async (response) => {
@@ -119,16 +105,17 @@ async function startBrowser() {
     })
 
     await page.goto("https://wplace.live", { waitUntil: 'domcontentloaded' });
-    browser.on('targetcreated', async (target) => {
-        if (target.type() === 'page') {
+    browser.on('targetchanged', async (target) => {
+        if (target.type() === 'page' && target.url().includes('wplace.live')) {
             const newPage = await target.page()
+            await newPage.setBypassServiceWorker(true)
             await newPage.setRequestInterception(true)
             newPage.on('request', (request) => {
                 if (request.url().includes('/pixel/') && request.method() === 'GET') {
                 const regex = /pixel\/([0-9]+)\/([0-9]+)\?x/
                 const match = request.url().match(regex)
                 if (match) {
-                    page.evaluate((match) => {
+                        newPage.evaluate((match) => {
                         const [, x, y] = match
                         const top = document.querySelector('div.disable-pinch-zoom>div.gap-2')
                         top.innerHTML = `<button class="btn btn-primary btn-md mt-5">X:${x} Y: ${y}</button>`
