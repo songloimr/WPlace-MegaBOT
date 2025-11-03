@@ -116,7 +116,7 @@ function sseBroadcast(eventName, payload) {
 
 async function startServer(port, host) {
   ensureDb()
-  const { pawtectMe, signBody, captchaToken, openPage } = await startBrowser()
+  const { paint, openPage } = await startBrowser()
   const app = express();
 
   // Middleware
@@ -259,64 +259,11 @@ async function startServer(port, host) {
       const accounts = readJson(ACCOUNTS_FILE, []);
       const { fp, id, proxy } = accounts.find(a => a.token === jToken);
 
-      const impit = createImpit({
-        proxyUrl: proxy || undefined,
-        timeout: 15_000
-      })
-
       const remotePath = `https://backend.wplace.live/s0/pixel/${encodeURIComponent(area)}/${encodeURIComponent(no)}`;
-      const payload = JSON.stringify({
-        colors,
-        coords,
-        fp: fp || crypto.createHash('md5').update(jToken).digest('hex')
-      });
-      const pawtect = await pawtectMe(id)
 
-      await impit.fetch('https://backend.wplace.live/pawtect/load', {
-        method: 'POST',
-        body: JSON.stringify({
-          pawtectMe: pawtect,
-          "paint-the": "world",
-          "but-not": "using-bots",
-          security: "/.well-known/security.txt"
-        }),
-        headers: {
-          'cookie': `j=${jToken}`
-        }
-      }).then(e => {
-        if (e.status !== 204) {
-          captchaToken(true)
-          return Readable.fromWeb(e.body).pipe(e)
-        }
-      })
+      const response = await paint({ fp, coords, colors, requestUrl: remotePath, cookie: jToken })
+      res.json(response);
 
-      const requestUrl = `https://backend.wplace.live/files/s0/tiles/${encodeURIComponent(area)}/${encodeURIComponent(no)}.png`;
-      const xpaw = await signBody(requestUrl, payload);
-      const headers = {
-        'cookie': `j=${jToken}`,
-        'x-pawtect-token': xpaw,
-        'x-pawtect-variant': 'koala'
-      };
-      await impit.fetch(remotePath, {
-        method: 'OPTIONS',
-        headers: {
-          'access-control-request-method': 'POST',
-          'access-control-request-headers': 'x-pawtect-token,x-pawtect-variant',
-        }
-      })
-      const response = await impit.fetch(remotePath, {
-        method: 'POST',
-        body: payload,
-        headers
-      });
-      captchaToken(true)
-      Readable.fromWeb(response.body).pipe(res).on('error', err => {
-        if (!res.headersSent) {
-          res.status(502).json({ error: 'Pixel post error', message: err.message });
-        } else {
-          res.end()
-        }
-      })
     } catch (e) {
       res.status(502).json({ error: 'proxy failed ' + e.message });
     }

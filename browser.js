@@ -3,20 +3,13 @@ const { RequestInterceptionManager } = require('puppeteer-intercept-and-modify-r
 const path = require('path');
 const fs = require('fs');
 
-const COOKIE_FILE = path.join(__dirname, 'db', 'browser-cookie.txt');
 const DATA_STORE_FILE = path.join(__dirname, 'db', 'browser-data.json');
-let SERVER_URL = null;
-
-function readCookie() {
-    return fs.readFileSync(COOKIE_FILE, 'utf8');
-}
 
 async function init() {
     const userDataDir = path.join(__dirname, 'userdata');
-    if (fs.existsSync(userDataDir)) {
-        fs.rmSync(userDataDir, { recursive: true });
+    if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir);
     }
-    fs.mkdirSync(userDataDir);
 
     return connect({
         headless: false,
@@ -38,7 +31,13 @@ async function init() {
     });
 }
 async function startBrowser() {
-    let captchaToken = null
+    let data = {
+        fp: '',
+        coords: [],
+        colors: [],
+        requestUrl: ''
+    }
+    let isReadyForPaint = false
 
     const { browser, page } = await init();
     const client = await page.createCDPSession()
@@ -70,62 +69,62 @@ async function startBrowser() {
                             func.get_pawtected_endpoint_payload = fn.match(regex)[1]
                         }
                     });
-                body = body.replace(func.set_user_id, func.set_user_id + `window.pawtectMe=(id)=>{m.set_user_id(Number(id));return ${func.get_load_payload}()};window.sign=(url,body)=>{${func.request_url}(url);return ${func.get_pawtected_endpoint_payload}(body)};`)
+                body = body.replace(func.set_user_id, func.set_user_id + `window.paint=async()=>{${func.request_url}("${data.requestUrl.replace('s0/pixel', 'files/s0/tiles') + '.png'}");const o=JSON.stringify({coords:${JSON.stringify(data.coords)},colors:${JSON.stringify(data.colors)},fp:"${data.fp}"});return fetch("${data.requestUrl}",{method:"POST",body:o,headers:{"x-pawtect-token":${func.get_pawtected_endpoint_payload}(o),"x-pawtect-variant":"koala"},credentials:"include"}).then(r=>r.json())};`)
+                return { body }
             }
-            return { body }
         }
     })
 
-    if (!fs.existsSync(COOKIE_FILE)) {
-        const cookie = await page.evaluate(() => {
-            return prompt('Please enter the cookie:')
-        })
-        fs.writeFileSync(COOKIE_FILE, cookie, 'utf8');
-    }
-
-    await page.evaluateOnNewDocument(() => {
-        localStorage.removeItem('lp')
-        //localStorage.setItem('location', JSON.stringify({ lng: 103.95030643628093, lat: 19.888507647599837, zoom: 14 }))
-        localStorage.setItem('view-rules', true)
-        localStorage.setItem('void-message-2', true)
-        localStorage.setItem('showed:shop-profile-picture', true)
-        localStorage.setItem('showed:region-leaderboard', true)
-        localStorage.setItem('showed:info', true)
-        localStorage.setItem('show-all-colors', false)
-        localStorage.setItem('show-paint-more-than-one-pixel-msg', false)
-        localStorage.setItem('selected-color', 5)
-        localStorage.setItem('muted', 1)
-        localStorage.setItem('PARAGLIDE_LOCALE', 'en')
-    })
-    const cookieValue = readCookie()
-    await browser.setCookie({
-        name: 'j',
-        value: cookieValue,
-        domain: '.backend.wplace.live',
-        path: '/',
-        expires: 1799960610,
-        httpOnly: true,
-        secure: true,
-        session: false,
-        size: cookieValue.length + 1
-    })
+    // await page.evaluateOnNewDocument(() => {
+    //     localStorage.removeItem('lp')
+    //     //localStorage.setItem('location', JSON.stringify({ lng: 103.95030643628093, lat: 19.888507647599837, zoom: 14 }))
+    //     localStorage.setItem('view-rules', true)
+    //     localStorage.setItem('void-message-2', true)
+    //     localStorage.setItem('showed:shop-profile-picture', true)
+    //     localStorage.setItem('showed:region-leaderboard', true)
+    //     localStorage.setItem('showed:info', true)
+    //     localStorage.setItem('show-all-colors', false)
+    //     localStorage.setItem('show-paint-more-than-one-pixel-msg', false)
+    //     localStorage.setItem('selected-color', 5)
+    //     localStorage.setItem('muted', 1)
+    //     localStorage.setItem('PARAGLIDE_LOCALE', 'en')
+    // })
+    await page.setCacheEnabled(false)
+    await page.setBypassServiceWorker(true)
     await page.setRequestInterception(true)
-    page.setDefaultNavigationTimeout(60_000)
-    page.on('request', (request) => {
-        if (request.url().includes('/favorite') && request.method() === 'POST') {
+    page.on('domcontentloaded', async () => {
+        await page.evaluate(() => {
+            setInterval(() => {
+                document.title = 'Do Not Close This Tab'
+            }, 5_000)
+        });
+    })
+    page.on('response', async (response) => {
+        if (response.url().endsWith('pawtect/load') && response.status() === 204) {
+            isReadyForPaint = true
+        }
+    })
+    page.on('request', async (request) => {
+        if (
+            request.url().endsWith(".png") ||
+            request.url().endsWith(".pbf") ||
+            request.url().endsWith(".mp3") ||
+            request.url().endsWith(".css") ||
+            request.url().endsWith(".woff2")
+        ) {
             request.abort()
-        } else if (request.url().includes('/pixel/')) {
-            if (request.method() === 'POST') {
-            const { t } = JSON.parse(request.postData())
-            captchaToken = t
-            if (SERVER_URL) {
-                fetch(SERVER_URL + '/api/captcha-ready', {
-                    method: 'HEAD'
-                })
-            }
-            request.abort()
-                return;
-            } else if (request.method() === 'GET') {
+        } else {
+            request.continue()
+        }
+    })
+
+    await page.goto("https://wplace.live", { waitUntil: 'domcontentloaded' });
+    browser.on('targetcreated', async (target) => {
+        if (target.type() === 'page') {
+            const newPage = await target.page()
+            await newPage.setRequestInterception(true)
+            newPage.on('request', (request) => {
+                if (request.url().includes('/pixel/') && request.method() === 'GET') {
                 const regex = /pixel\/([0-9]+)\/([0-9]+)\?x/
                 const match = request.url().match(regex)
                 if (match) {
@@ -140,28 +139,41 @@ async function startBrowser() {
                 }
             }
             request.continue()
-        } else {
-            request.continue()
+            })
         }
     })
-    await page.goto("https://wplace.live");
     return {
-        pawtectMe: (user_id) => {
-            return page.evaluate((id) => window.pawtectMe(id), user_id)
-        },
-        signBody: (url, body) => {
-            return page.evaluate((url, body) => {
-                return window.sign(url, body)
-            }, url, body)
-        },
-        captchaToken: (reset = false) => {
-            if (reset) {
-                captchaToken = ''
+        paint: async ({ fp, coords, colors, requestUrl, cookie }) => {
+            await browser.setCookie({
+                name: 'j',
+                value: cookie,
+                domain: '.backend.wplace.live',
+                path: '/',
+                expires: Date.now() / 1000 + (60 * 60 * 24), // 24 hours
+                httpOnly: true,
+                secure: true,
+            })
+            data = { fp, coords, colors, requestUrl }
+            await page.reload({ waitUntil: 'domcontentloaded' })
+            while (!isReadyForPaint) {
+                await new Promise(r => setTimeout(r, 200))
             }
-            return captchaToken
+            isReadyForPaint = false;
+            return page.evaluate(async () => {
+                await new Promise(resolve => {
+                    const intervalId = setInterval(() => {
+                        // @ts-ignore
+                        if (typeof window.paint === 'function') {
+                            resolve(void 0)
+                            clearInterval(intervalId)
+                        }
+                    }, 100)
+                })
+                // @ts-ignore
+                return window.paint()
+            })
         },
         openPage: async (url) => {
-            SERVER_URL = url
             const subPage = await browser.newPage()
 
             await subPage.goto(url, { waitUntil: 'domcontentloaded' })
