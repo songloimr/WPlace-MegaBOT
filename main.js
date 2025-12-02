@@ -41,7 +41,7 @@ const ACCOUNTS_FILE = path.join(DB_DIR, 'accounts.json');
 const SETTINGS_FILE = path.join(DB_DIR, 'settings.json');
 const FAVORITES_FILE = path.join(DB_DIR, 'favorites.json');
 
-const PROXY_REGEX = /^[a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@[0-9\.]+:[0-9]+$/
+const PROXY_REGEX = /^([a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@)?[0-9\.]+:[0-9]+$/
 
 function ensureDb() {
   try { fs.mkdirSync(DB_DIR, { recursive: true }); } catch { }
