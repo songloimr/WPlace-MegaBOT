@@ -6010,6 +6010,15 @@ if (startBtn) {
                                         clearInterval(window._autoStartTimer);
                                         window._autoStartTimer = null;
                                         if (cdEl) cdEl.textContent = '';
+
+                                        // Refresh selection before starting to ensure we don't paint already painted pixels
+                                        if (autoSelectBtn) {
+                                            if (autoSelectDeleteMode) {
+                                                autoSelectBtn.click(); // Clear current selection
+                                            }
+                                            autoSelectBtn.click(); // Select new pixels based on current state
+                                        }
+
                                         const btn = document.getElementById('start');
                                         if (btn && !btn.disabled) btn.click();
                                     }
