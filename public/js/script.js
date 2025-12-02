@@ -5181,6 +5181,13 @@ const autoModeLabelRight = document.getElementById('auto-mode-label-right');
 const autoStartTrack = document.getElementById('auto-start-toggle');
 const autoStartLabelLeft = document.getElementById('auto-start-label-left');
 const autoStartLabelRight = document.getElementById('auto-start-label-right');
+const humanDelayTrack = document.getElementById('human-delay-toggle');
+const humanDelayLabelLeft = document.getElementById('human-delay-label-left');
+const humanDelayLabelRight = document.getElementById('human-delay-label-right');
+const humanDelayInputs = document.getElementById('human-delay-inputs');
+const humanMinInput = document.getElementById('human-min');
+const humanMaxInput = document.getElementById('human-max');
+
 const selectModeTrack = document.getElementById('select-mode-toggle');
 const selectModeLabelLeft = document.getElementById('select-mode-label-left');
 const selectModeLabelRight = document.getElementById('select-mode-label-right');
@@ -5188,6 +5195,9 @@ const selectModeLabelColor = document.getElementById('select-mode-label-color');
 let selectMode = 'multi';
 let autoMode = false;
 let autoStart = false;
+let humanDelayEnabled = false;
+let humanDelayMin = 30;
+let humanDelayMax = 60;
 
 function updateSelectModeUi() {
     try { if (selectModeTrack) selectModeTrack.setAttribute('data-mode', selectMode); } catch { }
@@ -5215,6 +5225,15 @@ function updateAutoStartUi() {
     try { if (autoStartLabelLeft) autoStartLabelLeft.classList.toggle('active', !autoStart); } catch { }
     try { if (autoStartLabelRight) autoStartLabelRight.classList.toggle('active', !!autoStart); } catch { }
 }
+function updateHumanDelayUi() {
+    try { if (humanDelayTrack) humanDelayTrack.classList.toggle('on', !!humanDelayEnabled); } catch { }
+    try { if (humanDelayTrack) humanDelayTrack.setAttribute('aria-checked', humanDelayEnabled ? 'true' : 'false'); } catch { }
+    try { if (humanDelayLabelLeft) humanDelayLabelLeft.classList.toggle('active', !humanDelayEnabled); } catch { }
+    try { if (humanDelayLabelRight) humanDelayLabelRight.classList.toggle('active', !!humanDelayEnabled); } catch { }
+    try { if (humanDelayInputs) humanDelayInputs.hidden = !humanDelayEnabled; } catch { }
+    try { if (humanMinInput) humanMinInput.value = humanDelayMin; } catch { }
+    try { if (humanMaxInput) humanMaxInput.value = humanDelayMax; } catch { }
+}
 try {
     const savedAuto = localStorage.getItem('ready.autoMode');
     autoMode = (savedAuto === '1' || savedAuto === 'true');
@@ -5222,6 +5241,13 @@ try {
     const savedAutoStart = localStorage.getItem('ready.autoStart');
     autoStart = (savedAutoStart === '1' || savedAutoStart === 'true');
     updateAutoStartUi();
+    const savedHuman = localStorage.getItem('ready.humanDelay');
+    humanDelayEnabled = (savedHuman === '1' || savedHuman === 'true');
+    const savedMin = localStorage.getItem('ready.humanMin');
+    if (savedMin) humanDelayMin = Math.max(0, parseInt(savedMin));
+    const savedMax = localStorage.getItem('ready.humanMax');
+    if (savedMax) humanDelayMax = Math.max(0, parseInt(savedMax));
+    updateHumanDelayUi();
 } catch { }
 if (autoModeTrack) autoModeTrack.addEventListener('click', () => {
     autoMode = !autoMode;
@@ -5237,6 +5263,34 @@ if (autoModeLabelLeft) autoModeLabelLeft.addEventListener('click', () => { autoM
 if (autoModeLabelRight) autoModeLabelRight.addEventListener('click', () => { autoMode = true; try { localStorage.setItem('ready.autoMode', '1'); } catch { }; updateAutoModeUi(); });
 if (autoStartLabelLeft) autoStartLabelLeft.addEventListener('click', () => { autoStart = false; try { localStorage.setItem('ready.autoStart', '0'); } catch { }; updateAutoStartUi(); });
 if (autoStartLabelRight) autoStartLabelRight.addEventListener('click', () => { autoStart = true; try { localStorage.setItem('ready.autoStart', '1'); } catch { }; updateAutoStartUi(); });
+if (humanDelayTrack) humanDelayTrack.addEventListener('click', () => {
+    humanDelayEnabled = !humanDelayEnabled;
+    try { localStorage.setItem('ready.humanDelay', humanDelayEnabled ? '1' : '0'); } catch { }
+    updateHumanDelayUi();
+});
+if (humanDelayLabelLeft) humanDelayLabelLeft.addEventListener('click', () => {
+    humanDelayEnabled = false;
+    try { localStorage.setItem('ready.humanDelay', '0'); } catch { }
+    updateHumanDelayUi();
+});
+if (humanDelayLabelRight) humanDelayLabelRight.addEventListener('click', () => {
+    humanDelayEnabled = true;
+    try { localStorage.setItem('ready.humanDelay', '1'); } catch { }
+    updateHumanDelayUi();
+});
+if (humanMinInput) humanMinInput.addEventListener('change', () => {
+    let val = parseInt(humanMinInput.value);
+    if (isNaN(val) || val < 0) val = 0;
+    humanDelayMin = val;
+    try { localStorage.setItem('ready.humanMin', String(humanDelayMin)); } catch { }
+});
+if (humanMaxInput) humanMaxInput.addEventListener('change', () => {
+    let val = parseInt(humanMaxInput.value);
+    if (isNaN(val) || val < 0) val = 0;
+    humanDelayMax = val;
+    try { localStorage.setItem('ready.humanMax', String(humanDelayMax)); } catch { }
+});
+
 if (selectModeTrack) selectModeTrack.addEventListener('click', () => {
     const next = selectMode === 'multi' ? 'frame' : (selectMode === 'frame' ? 'color' : 'multi');
     setSelectMode(next);
@@ -5412,6 +5466,9 @@ if (autoSelectAccountsBtn) {
 }
 
 function resetReadyNow() {
+    if (window._autoStartTimer) { clearInterval(window._autoStartTimer); window._autoStartTimer = null; }
+    const cdEl = document.getElementById('auto-start-countdown');
+    if (cdEl) cdEl.textContent = '';
     try { if (readyPopup) readyPopup.hidden = true; } catch { }
     try {
         if (readyLockedItem) { readyLockedItem.lockedByReady = false; updateItemLockUi(readyLockedItem); readyLockedItem = null; }
@@ -5928,6 +5985,36 @@ if (startBtn) {
                             updateReadyPixelForSelectedAccounts();
                             try { await new Promise(resolve => setTimeout(resolve, didReload ? 50 : 300)); } catch { }
                             if (autoSelectBtn) { autoSelectDeleteMode = false; autoSelectBtn.click(); }
+
+                            if (autoStart) {
+                                let delay = 500;
+                                if (humanDelayEnabled) {
+                                    const min = Math.min(humanDelayMin, humanDelayMax);
+                                    const max = Math.max(humanDelayMin, humanDelayMax);
+                                    delay = (Math.random() * (max - min) + min) * 1000;
+                                }
+
+                                if (window._autoStartTimer) clearInterval(window._autoStartTimer);
+                                const endTime = Date.now() + delay;
+                                const cdEl = document.getElementById('auto-start-countdown');
+                                
+                                // Initial update
+                                const initialRem = Math.max(0, Math.ceil(delay / 1000));
+                                if (cdEl && humanDelayEnabled) cdEl.textContent = `(${initialRem}s)`;
+
+                                window._autoStartTimer = setInterval(() => {
+                                    const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+                                    if (cdEl && humanDelayEnabled) cdEl.textContent = `(${remaining}s)`;
+
+                                    if (Date.now() >= endTime) {
+                                        clearInterval(window._autoStartTimer);
+                                        window._autoStartTimer = null;
+                                        if (cdEl) cdEl.textContent = '';
+                                        const btn = document.getElementById('start');
+                                        if (btn && !btn.disabled) btn.click();
+                                    }
+                                }, 100);
+                            }
                         }
                     } catch { }
                 }

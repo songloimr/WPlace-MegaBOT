@@ -53,6 +53,22 @@
                 <span class="select-mode-knob"></span>
               </button>
               <span id="auto-start-label-right" class="select-mode-label" data-i18n="ready.autoStart.on">Auto start on</span>
+              <span id="auto-start-countdown" class="select-mode-label" style="margin-left:8px; color:#ffd700; font-weight:bold;"></span>
+            </div>
+          </div>
+          <div class="controls-row" id="human-delay-controls" style="margin-top:8px; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <div class="select-mode-wrap">
+              <span id="human-delay-label-left" class="select-mode-label" data-i18n="ready.humanDelay.off">Human delay off</span>
+              <button id="human-delay-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Human delay">
+                <span class="select-mode-knob"></span>
+              </button>
+              <span id="human-delay-label-right" class="select-mode-label" data-i18n="ready.humanDelay.on">Human delay on</span>
+            </div>
+            <div id="human-delay-inputs" style="display:flex; align-items:center; gap:8px;" hidden>
+              <input id="human-min" type="number" min="0" value="30" style="width:60px; text-align:center;" placeholder="Min" aria-label="Min seconds" />
+              <span>-</span>
+              <input id="human-max" type="number" min="0" value="60" style="width:60px; text-align:center;" placeholder="Max" aria-label="Max seconds" />
+              <span style="font-size:12px; opacity:0.8;">sec</span>
             </div>
           </div>
           <div id="ready-account-list" hidden></div>

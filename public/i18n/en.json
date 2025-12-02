@@ -26,6 +26,10 @@
     "autoStart": {
       "on": "Auto start on",
       "off": "Auto start off"
+    },
+    "humanDelay": {
+      "on": "Human delay on",
+      "off": "Human delay off"
     }
   },
   "modal": {
