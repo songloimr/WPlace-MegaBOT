@@ -369,6 +369,7 @@ resizeSelectionOverlay();
 window.addEventListener('resize', resizeSelectionOverlay);
 // Background refresh and recent paint cache
 const BACKGROUND_REFRESH_MS = 30 * 1000;
+const PAINT_REQUEST_TIMEOUT_MS = 10000;
 const RECENT_CACHE_MAX = 10000;
 let isPainting = false;
 const recentPaintCache = new Map();
@@ -5811,19 +5812,29 @@ function getSelectedAccountsSortedByCapacityDesc() {
     return rows;
 }
 async function postBatch(area, no, colors, coords, jToken) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PAINT_REQUEST_TIMEOUT_MS);
     try {
         const res = await fetch('/api/pixel/' + encodeURIComponent(area) + '/' + encodeURIComponent(no), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ colors, coords, j: jToken })
+            body: JSON.stringify({ colors, coords, j: jToken }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const text = await res.text();
         let payload = null;
         try { payload = JSON.parse(text); } catch { }
 
         return { ok: res.status < 500 && !!(payload && Object.prototype.hasOwnProperty.call(payload, 'painted')), payload, text, status: res.status };
     } catch (e) {
-        return { ok: false, error: e && e.message ? e.message : String(e) };
+        clearTimeout(timeoutId);
+        const isTimeout = e.name === 'AbortError' || (e.message && e.message.includes('aborted'));
+        return {
+            ok: false,
+            error: isTimeout ? 'Request timed out' : (e && e.message ? e.message : String(e)),
+            status: isTimeout ? 504 : 0
+        };
     }
 }
 
