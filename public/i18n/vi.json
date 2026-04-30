@@ -42,23 +42,37 @@
   "accounts": {
     "add": "Thêm tài khoản",
     "checkAll": "Kiểm tra tất cả tài khoản",
-    "checkAllTitle": "Kiểm tra dung lượng pixel của tất cả tài khoản"
+    "checkAllTitle": "Kiểm tra dung lượng pixel của tất cả tài khoản",
+    "checkingAll": "Đang kiểm tra tất cả tài khoản..."
   },
   "table": {
     "accountName": "Tên tài khoản",
-    "accountToken": "Token tài khoản",
     "droplets": "Droplets",
     "pixelRight": "Giới hạn pixel",
     "status": "Trạng thái",
     "actions": "Hành động",
     "statusActive": "Hoạt động",
-    "statusPassive": "Không hoạt động"
+    "statusPassive": "Không hoạt động",
+    "search": "Tìm tên tài khoản...",
+    "filterAll": "Tất cả",
+    "filterActive": "Hoạt động",
+    "filterInactive": "Không hoạt động"
   },
   "form": {
     "accountNameLabel": "Tên tài khoản",
     "accountNamePlaceholder": "VD: Tài khoản chính",
     "accountTokenLabel": "Token tài khoản",
     "accountTokenPlaceholder": "VD: eyJhbGciOi...",
+    "proxyLabel": "HTTP Proxy",
+    "proxyOptional": "(Tùy chọn)",
+    "proxyUser": "User",
+    "proxyPass": "Mật khẩu",
+    "proxyHost": "Host",
+    "proxyPort": "Cổng",
+    "checkProxy": "Kiểm tra proxy",
+    "checkingProxy": "Đang kiểm tra...",
+    "proxyWorking": "✔ Proxy hoạt động",
+    "proxyFailed": "✘ Proxy thất bại",
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Tải",

@@ -110,13 +110,27 @@
             <button id="btn-account-add" class="app-btn" type="button" data-i18n="accounts.add">Add account</button>
             <button id="btn-check-all" class="app-btn" type="button" data-i18n-title="accounts.checkAllTitle"><span class="label" data-i18n="accounts.checkAll">Check All Accounts</span> <span class="spin-indicator">⟳</span></button>
           </div>
+          <div class="account-toolbar">
+            <div class="account-search-wrap">
+              <span class="search-icon">🔍</span>
+              <input id="account-search" type="text" placeholder="Search account name..." data-i18n-placeholder="table.search" />
+            </div>
+            <div class="account-filter-group">
+              <button class="filter-chip active" data-filter="all" data-i18n="table.filterAll">All</button>
+              <button class="filter-chip" data-filter="active" data-i18n="table.filterActive">Active</button>
+              <button class="filter-chip" data-filter="inactive" data-i18n="table.filterInactive">Inactive</button>
+            </div>
+          </div>
+          <div id="check-all-overlay" class="check-all-overlay" hidden>
+            <div class="check-all-spinner">⟳</div>
+            <span data-i18n="accounts.checkingAll">Checking all accounts...</span>
+          </div>
           <div class="table-responsive">
             <table id="accounts-table" class="table table-dark table-striped table-hover table-sm align-middle mb-2">
               <thead>
                 <tr>
                   <th data-i18n="table.accountName">Account name</th>
-                  <th data-i18n="table.accountToken">Account token</th>
-                  <th data-i18n="table.droplets">Droplets</th>
+                  <th data-i18n="table.droplets" class="sortable" data-sort="droplets">Droplets <span class="sort-indicator"></span></th>
                   <th data-i18n="table.pixelRight">Pixel limit</th>
                   <th data-i18n="table.status">Status</th>
                   <th data-i18n="table.actions">Action</th>
@@ -131,9 +145,19 @@
             <label for="account-name-input" data-i18n="form.accountNameLabel">Account name</label>
             <input id="account-name-input" type="text" placeholder="e.g., Main account" data-i18n-placeholder="form.accountNamePlaceholder" />
             <label for="account-token-input" data-i18n="form.accountTokenLabel">Account token</label>
-            <input id="account-token-input" type="text" placeholder="e.g., eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder" />
-            <label for="proxy-input">HTTP Proxy (Optional)</label>
-            <input id="proxy-input" type="text" placeholder="Format user:pass@host:ip" />
+            <textarea id="account-token-input" rows="3" placeholder="e.g., eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder"></textarea>
+            <label data-i18n="form.proxyLabel">HTTP Proxy <span class="optional-label" data-i18n="form.proxyOptional">(Optional)</span></label>
+            <div class="proxy-grid">
+              <input id="proxy-user" type="text" placeholder="User" data-i18n-placeholder="form.proxyUser" />
+              <input id="proxy-pass" type="password" placeholder="Password" data-i18n-placeholder="form.proxyPass" />
+              <input id="proxy-host" type="text" placeholder="Host" data-i18n-placeholder="form.proxyHost" />
+              <input id="proxy-port" type="text" placeholder="Port" data-i18n-placeholder="form.proxyPort" />
+            </div>
+            <div></div>
+            <div class="proxy-actions">
+              <button id="btn-check-proxy" class="app-btn" type="button" data-i18n="form.checkProxy">Check proxy</button>
+              <span id="proxy-status" class="proxy-status" hidden></span>
+            </div>
             <input id="account-id-input" type="hidden" />
           </div>
           <div class="modal-footer split">
