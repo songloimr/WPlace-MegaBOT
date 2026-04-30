@@ -2,3 +2,7 @@ node_modules
 db
 userdata
 .DS_Store
+.gitnexus
+.trae
+AGENTS.md
+package-lock.json
