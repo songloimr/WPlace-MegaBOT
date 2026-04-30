@@ -31,7 +31,7 @@
 - Run
 
 ## Features
-- Multi-language UI with quick switching.
+- English & Vietnamese UI with quick switching.
 - Proxy support (HTTP).
 - Favorites management (save/reload locations).
 - Notification sound with volume control.

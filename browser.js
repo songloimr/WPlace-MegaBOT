@@ -19,9 +19,7 @@ async function init() {
         },
         customConfig: {
             userDataDir,
-            //chromePath: '/Applications/Chromium.app/Contents/MacOS/Chromium'
-            //chromePath: 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
-            //chromePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+            chromePath: '/Applications/Chromium.app/Contents/MacOS/Chromium'
         },
         disableXvfb: false,
         args: [
@@ -112,20 +110,20 @@ async function startBrowser() {
             await newPage.setRequestInterception(true)
             newPage.on('request', (request) => {
                 if (request.url().includes('/pixel/') && request.method() === 'GET') {
-                const regex = /pixel\/([0-9]+)\/([0-9]+)\?x/
-                const match = request.url().match(regex)
-                if (match) {
+                    const regex = /pixel\/([0-9]+)\/([0-9]+)\?x/
+                    const match = request.url().match(regex)
+                    if (match) {
                         newPage.evaluate((match) => {
-                        const [, x, y] = match
-                        const top = document.querySelector('div.disable-pinch-zoom>div.gap-2')
-                        top.innerHTML = `<button class="btn btn-primary btn-md mt-5">X:${x} Y: ${y}</button>`
-                        setTimeout(() => {
-                            top.innerHTML = ''
-                        }, 10_000)
-                    }, match)
+                            const [, x, y] = match
+                            const top = document.querySelector('div.disable-pinch-zoom>div.gap-2')
+                            top.innerHTML = `<button class="btn btn-primary btn-md mt-5">X:${x} Y: ${y}</button>`
+                            setTimeout(() => {
+                                top.innerHTML = ''
+                            }, 10_000)
+                        }, match)
+                    }
                 }
-            }
-            request.continue()
+                request.continue()
             })
         }
     })
@@ -147,17 +145,18 @@ async function startBrowser() {
             }
             isReadyForPaint = false;
             return page.evaluate(async () => {
-                await new Promise(resolve => {
-                    const intervalId = setInterval(() => {
-                        // @ts-ignore
-                        if (typeof window.paint === 'function') {
-                            resolve(void 0)
-                            clearInterval(intervalId)
-                        }
-                    }, 100)
-                })
-                // @ts-ignore
-                return window.paint()
+                const paint = /** @type {any} */ (window).paint;
+                if (typeof paint !== 'function') {
+                    await new Promise(resolve => {
+                        const waitId = setInterval(() => {
+                            if (typeof /** @type {any} */ (window).paint === 'function') {
+                                resolve(void 0)
+                                clearInterval(waitId)
+                            }
+                        }, 100)
+                    })
+                }
+                return /** @type {any} */ (window).paint()
             })
         },
         openPage: async (url) => {
@@ -177,12 +176,12 @@ async function startBrowser() {
             }, data)
             await subPage.reload()
             await new Promise(r => setTimeout(r, 5_000))
-            const intervalId = setInterval(async () => {
+            const waitId = setInterval(async () => {
                 try {
                     const data = await subPage.evaluate(() => JSON.stringify(localStorage, null, 4))
                     fs.writeFileSync(DATA_STORE_FILE, data, 'utf8');
                 } catch (error) {
-                    clearInterval(intervalId)
+                    clearInterval(waitId)
                 }
             }, 5_000)
         }

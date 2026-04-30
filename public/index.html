@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   <div id="top-toolbar">
   <div id="sound-control">
     <button id="sound-toggle" class="app-btn" type="button" title="" aria-label="">🔊</button>
-    <div class="sound-slider" role="group" aria-label="Ses ayarı">
+    <div class="sound-slider" role="group" aria-label="Sound settings">
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#e5e7eb;opacity:0.9;font-size:12px">
         <span data-i18n=""></span>
         <div id="sound-volume" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Volume">
@@ -29,15 +29,15 @@
   </div>
     <div id="control-panel">
       <div class="controls-row">
-        <button id="btn-accounts" class="app-btn" type="button" data-i18n="nav.accounts">Hesaplar</button>
-        <div id="pixel-power" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Piksel gücü: 0 / 0</div>
+        <button id="btn-accounts" class="app-btn" type="button" data-i18n="nav.accounts">Accounts</button>
+        <div id="pixel-power" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
       </div>
       <div>
-        <button id="btn-ready" class="app-btn" type="button" disabled data-i18n="ready.prepare">Hazırlan</button>
+        <button id="btn-ready" class="app-btn" type="button" disabled data-i18n="ready.prepare">Ready</button>
         <div id="ready-popup" hidden>
           <div class="ready-header">
-            <button id="btn-ready-account" class="app-btn" type="button" data-i18n="ready.selectAccount">Hesap seç</button>
-            <div id="ready-pixel" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Piksel gücü: 0 / 0</div>
+            <button id="btn-ready-account" class="app-btn" type="button" data-i18n="ready.selectAccount">Select account</button>
+            <div id="ready-pixel" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
           </div>
           <div class="controls-row" id="auto-mode-controls">
             <div class="select-mode-wrap">
@@ -76,14 +76,14 @@
             <button id="btn-auto-select-accounts" class="app-btn" type="button" data-i18n="ready.autoSelectAccounts">Auto select account</button>
           </div>
           <div class="controls-row">
-            <button id="btn-auto-select" class="app-btn" type="button" data-i18n="ready.autoSelect">Otomatik seç</button>
-            <button id="start" class="app-btn" type="button" data-i18n="ready.start">Başlat</button>
+            <button id="btn-auto-select" class="app-btn" type="button" data-i18n="ready.autoSelect">Auto select</button>
+            <button id="start" class="app-btn" type="button" data-i18n="ready.start">Start</button>
           </div>
           <div class="controls-row" id="select-mode-controls">
             <div class="select-mode-wrap">
-              <span id="select-mode-label-left" class="select-mode-label active" data-i18n="ready.selectMode.multi">Önce çok yerden seç</span>
-              <span id="select-mode-label-right" class="select-mode-label" data-i18n="ready.selectMode.frame">Önce çerçeveyi seç</span>
-              <span id="select-mode-label-color" class="select-mode-label" data-i18n="ready.selectMode.color">Renge göre seç</span>
+              <span id="select-mode-label-left" class="select-mode-label active" data-i18n="ready.selectMode.multi">Select from start</span>
+              <span id="select-mode-label-right" class="select-mode-label" data-i18n="ready.selectMode.frame">Select from outline</span>
+              <span id="select-mode-label-color" class="select-mode-label" data-i18n="ready.selectMode.color">Select by colour</span>
             </div>
           </div>
         </div>
@@ -97,29 +97,29 @@
   <aside id="sidebar"><div id="counter" class="counter"></div><div id="thumb-list"></div></aside>
   <div id="accounts-modal" hidden>
     <div class="modal-card">
-      <button id="accounts-close" class="modal-close app-btn" title="Kapat" type="button" data-i18n-title="modal.closeTitle">×</button>
+      <button id="accounts-close" class="modal-close app-btn" title="Close" type="button" data-i18n-title="modal.closeTitle">×</button>
       <div class="modal-tabs">
-        <button id="btn-shop-back" class="app-btn modal-back" type="button" data-i18n="buttons.back" hidden>Geri</button>
-        <button id="tab-accounts" class="tab-button active" type="button" data-i18n="tabs.accounts">Hesaplar</button>
+        <button id="btn-shop-back" class="app-btn modal-back" type="button" data-i18n="buttons.back" hidden>Back</button>
+        <button id="tab-accounts" class="tab-button active" type="button" data-i18n="tabs.accounts">Accounts</button>
         
         <div id="shop-droplets-info" class="app-btn modal-right-info" hidden>💧 Droplets: -</div>
       </div>
       <div class="modal-body">
         <div id="accounts-section">
           <div class="accounts-actions">
-            <button id="btn-account-add" class="app-btn" type="button" data-i18n="accounts.add">Hesap ekle</button>
+            <button id="btn-account-add" class="app-btn" type="button" data-i18n="accounts.add">Add account</button>
             <button id="btn-check-all" class="app-btn" type="button" data-i18n-title="accounts.checkAllTitle"><span class="label" data-i18n="accounts.checkAll">Check All Accounts</span> <span class="spin-indicator">⟳</span></button>
           </div>
           <div class="table-responsive">
             <table id="accounts-table" class="table table-dark table-striped table-hover table-sm align-middle mb-2">
               <thead>
                 <tr>
-                  <th data-i18n="table.accountName">Hesap ismi</th>
-                  <th data-i18n="table.accountToken">Hesap Tokeni</th>
+                  <th data-i18n="table.accountName">Account name</th>
+                  <th data-i18n="table.accountToken">Account token</th>
                   <th data-i18n="table.droplets">Droplets</th>
-                  <th data-i18n="table.pixelRight">Piksel Hakkı</th>
-                  <th data-i18n="table.status">Durum</th>
-                  <th data-i18n="table.actions">İşlem</th>
+                  <th data-i18n="table.pixelRight">Pixel limit</th>
+                  <th data-i18n="table.status">Status</th>
+                  <th data-i18n="table.actions">Action</th>
                 </tr>
               </thead>
               <tbody id="accounts-tbody"></tbody>
@@ -128,17 +128,17 @@
         </div>
         <div id="account-form-section" hidden>
           <div class="form-grid">
-            <label for="account-name-input" data-i18n="form.accountNameLabel">Hesap adı</label>
-            <input id="account-name-input" type="text" placeholder="Örn: Ana hesap" data-i18n-placeholder="form.accountNamePlaceholder" />
-            <label for="account-token-input" data-i18n="form.accountTokenLabel">Hesap tokeni</label>
-            <input id="account-token-input" type="text" placeholder="Örn: eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder" />
+            <label for="account-name-input" data-i18n="form.accountNameLabel">Account name</label>
+            <input id="account-name-input" type="text" placeholder="e.g., Main account" data-i18n-placeholder="form.accountNamePlaceholder" />
+            <label for="account-token-input" data-i18n="form.accountTokenLabel">Account token</label>
+            <input id="account-token-input" type="text" placeholder="e.g., eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder" />
             <label for="proxy-input">HTTP Proxy (Optional)</label>
             <input id="proxy-input" type="text" placeholder="Format user:pass@host:ip" />
             <input id="account-id-input" type="hidden" />
           </div>
           <div class="modal-footer split">
-            <button id="btn-account-cancel" class="app-btn" type="button" data-i18n="buttons.back">Geri</button>
-            <button id="btn-account-save" class="app-btn" type="button" data-i18n="buttons.add">Ekle</button>
+            <button id="btn-account-cancel" class="app-btn" type="button" data-i18n="buttons.back">Back</button>
+            <button id="btn-account-save" class="app-btn" type="button" data-i18n="buttons.add">Add</button>
           </div>
         </div>
         <div id="shop-view-section" hidden>
@@ -197,23 +197,23 @@
 
   <div id="img-preview-modal" hidden>
     <div class="modal-card" style="width:min(720px,95vw);max-width:95vw;">
-      <button id="img-preview-close" class="modal-close app-btn" title="Kapat" type="button" data-i18n-title="modal.closeTitle">×</button>
-      <div class="modal-header" data-i18n="form.uploadImage">Resim yükle</div>
+      <button id="img-preview-close" class="modal-close app-btn" title="Close" type="button" data-i18n-title="modal.closeTitle">×</button>
+      <div class="modal-header" data-i18n="form.uploadImage">Upload image</div>
       <div class="modal-body">
         <canvas id="img-preview-canvas" width="540" height="300" aria-label="Image preview"></canvas>
         <div class="img-preview-flex">
           <div>
             <div class="img-preview-grid">
-              <label for="img-scale" data-i18n="preview.scale">Ölçek (%)</label>
+              <label for="img-scale" data-i18n="preview.scale">Scale (%)</label>
               <input id="img-scale" type="number" min="1" max="800" step="1" value="100" />
-              <label for="img-keep-ratio" data-i18n="preview.keepRatio">Oranı koru</label>
+              <label for="img-keep-ratio" data-i18n="preview.keepRatio">Keep ratio</label>
               <label class="toggle" aria-label="Keep ratio">
                 <input id="img-keep-ratio" type="checkbox" checked />
                 <span class="slider"></span>
               </label>
-              <label for="img-width" data-i18n="preview.width">Genişlik</label>
+              <label for="img-width" data-i18n="preview.width">Width</label>
               <input id="img-width" type="number" min="1" max="1000" step="1" />
-              <label for="img-height" data-i18n="preview.height">Yükseklik</label>
+              <label for="img-height" data-i18n="preview.height">Height</label>
               <input id="img-height" type="number" min="1" max="1000" step="1" />
               <label for="img-alpha-input" data-i18n="preview.alphaThreshold">Transparency</label>
               <input id="img-alpha-input" type="number" min="0" max="255" step="1" value="5" />
@@ -230,22 +230,22 @@
           </div>
           <div id="img-fill-side">
             <div class="row">
-              <label for="img-fill-toggle" data-i18n="preview.fillBackground" style="margin-right:8px;">Arka planı doldur</label>
+              <label for="img-fill-toggle" data-i18n="preview.fillBackground" style="margin-right:8px;">Fill background</label>
               <label class="toggle" aria-label="Fill background" style="justify-self:start;">
                 <input id="img-fill-toggle" type="checkbox" />
                 <span class="slider"></span>
               </label>
             </div>
             <div class="row color-row">
-              <label for="img-fill-color" data-i18n="preview.color">Renk</label>
+              <label for="img-fill-color" data-i18n="preview.color">Color</label>
               <div id="img-fill-color" aria-disabled="true"></div>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="img-preview-cancel" class="app-btn" type="button" data-i18n="buttons.back">Geri</button>
-        <button id="img-preview-apply" class="app-btn" type="button" data-i18n="preview.addToMap">Haritaya ekle</button>
+        <button id="img-preview-cancel" class="app-btn" type="button" data-i18n="buttons.back">Back</button>
+        <button id="img-preview-apply" class="app-btn" type="button" data-i18n="preview.addToMap">Add to map</button>
       </div>
     </div>
   </div>
@@ -253,20 +253,20 @@
   
 
   <form class="panel" id="form">
-    <button class="app-btn" type="button" id="btn-open-favorites" title="Favoriler" data-i18n-title="favorites.openTitle">📁</button>
-    <button class="app-btn" type="button" id="btn-favorite-star" title="Kaydet" data-i18n-title="favorites.starTitle">★</button>
+    <button class="app-btn" type="button" id="btn-open-favorites" title="Favorites" data-i18n-title="favorites.openTitle">📁</button>
+    <button class="app-btn" type="button" id="btn-favorite-star" title="Save" data-i18n-title="favorites.starTitle">★</button>
     <label for="area-code" data-i18n="form.worldXLabel">World X</label>
     <input id="area-code" name="area code" type="number" min="0" step="1" inputmode="numeric" />
 
     <label for="no" data-i18n="form.worldYLabel">World Y</label>
     <input id="no" name="no" type="number" min="0" step="1" inputmode="numeric" />
 
-    <button class="app-btn" type="submit" data-i18n="form.fetchButton">Getir</button>
-    <button class="app-btn" type="button" id="btn-upload-sign" data-i18n="form.uploadImage">Resim yükle</button>
+    <button class="app-btn" type="submit" data-i18n="form.fetchButton">Fetch</button>
+    <button class="app-btn" type="button" id="btn-upload-sign" data-i18n="form.uploadImage">Upload image</button>
   </form>
  
   <div id="app-toast-container" aria-live="polite" aria-atomic="true"></div>
-  <div id="color-palette" aria-label="Renk paleti" role="group" data-i18n-aria-label="labels.colorPalette"></div>
+  <div id="color-palette" aria-label="Color palette" role="group" data-i18n-aria-label="labels.colorPalette"></div>
   <div id="palette-mode" class="palette-mode-wrap" aria-label="Palette mode" style="bottom:76px; left:50%; transform:translateX(-50%); visibility:hidden;">
     <span id="palette-mode-label-left" class="palette-mode-label active" data-i18n="paletteMode.premium">Use premium color</span>
     <button id="palette-mode-toggle" class="palette-mode-track" type="button" role="switch" aria-checked="true" aria-label="Palette mode"><span class="palette-mode-knob"></span></button>
@@ -274,24 +274,24 @@
   </div>
 
   <div id="move-control">
-    <button id="btn-movement" class="app-btn" type="button" data-i18n="controls.movement">Hareket</button>
+    <button id="btn-movement" class="app-btn" type="button" data-i18n="controls.movement">Movement</button>
     <div id="movement-popup" hidden>
       <div class="movement-grid">
         <span></span>
-        <button id="move-up" class="app-btn dir-btn" type="button" title="Yukarı" aria-label="Yukarı" data-i18n-title="movement.up" data-i18n-aria-label="movement.up">▲</button>
+        <button id="move-up" class="app-btn dir-btn" type="button" title="Up" aria-label="Up" data-i18n-title="movement.up" data-i18n-aria-label="movement.up">▲</button>
         <span></span>
-        <button id="move-left" class="app-btn dir-btn" type="button" title="Sola" aria-label="Sola" data-i18n-title="movement.left" data-i18n-aria-label="movement.left">◄</button>
+        <button id="move-left" class="app-btn dir-btn" type="button" title="Left" aria-label="Left" data-i18n-title="movement.left" data-i18n-aria-label="movement.left">◄</button>
         <span></span>
-        <button id="move-right" class="app-btn dir-btn" type="button" title="Sağa" aria-label="Sağa" data-i18n-title="movement.right" data-i18n-aria-label="movement.right">►</button>
+        <button id="move-right" class="app-btn dir-btn" type="button" title="Right" aria-label="Right" data-i18n-title="movement.right" data-i18n-aria-label="movement.right">►</button>
         <span></span>
-        <button id="move-down" class="app-btn dir-btn" type="button" title="Aşağı" aria-label="Aşağı" data-i18n-title="movement.down" data-i18n-aria-label="movement.down">▼</button>
+        <button id="move-down" class="app-btn dir-btn" type="button" title="Down" aria-label="Down" data-i18n-title="movement.down" data-i18n-aria-label="movement.down">▼</button>
         <span></span>
       </div>
     </div>
   </div>
   <div id="favorites-modal" hidden>
     <div class="modal-card">
-      <div class="modal-header" data-i18n="favorites.title">Favoriler</div>
+      <div class="modal-header" data-i18n="favorites.title">Favorites</div>
       <button id="favorites-close" class="modal-close app-btn" type="button" data-i18n-title="modal.closeTitle">×</button>
       <div class="modal-body" id="favorites-list"></div>
     </div>
@@ -299,17 +299,22 @@
 
   <div id="save-fav-modal" hidden>
     <div class="modal-card">
-      <div class="modal-header" data-i18n="favorites.saveTitle">Konumu kaydet</div>
+      <div class="modal-header" data-i18n="favorites.saveTitle">Save location</div>
       <button id="save-fav-close" class="modal-close app-btn" type="button" data-i18n-title="modal.closeTitle">×</button>
       <div class="modal-body">
-        <label for="fav-name-input" data-i18n="favorites.nameLabel">Ad</label>
+        <label for="fav-name-input" data-i18n="favorites.nameLabel">Name</label>
         <input id="fav-name-input" type="text" />
       </div>
       <div class="modal-footer">
-        <button id="fav-save-btn" class="app-btn" type="button" data-i18n="buttons.save">Kaydet</button>
+        <button id="fav-save-btn" class="app-btn" type="button" data-i18n="buttons.save">Save</button>
       </div>
     </div>
   </div>
+  <script src="./js/state.js"></script>
+  <script src="./js/i18n.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/palette.js"></script>
   <script src="./js/script.js"></script>
+  <script src="./js/sound.js"></script>
 </body>
-</html> 
+</html>
