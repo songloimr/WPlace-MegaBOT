@@ -662,7 +662,7 @@ function drawSelectionOverlay() {
                         const x = Math.floor(p.x * dpr);
                         const y = Math.floor(p.y * dpr);
                         const s = Math.max(1, Math.floor(state.scale * dpr));
-                        drawPixel(x, y, s, rec.colorId, '#22d3ee');
+                        drawPixel(x, y, s, rec.colorId, '#7aa2f7');
                     });
                 }
             }
@@ -1270,7 +1270,7 @@ function render() {
         const iwSel2 = Math.max(1, sel.displayWidth || sel.image.naturalWidth);
         const ihSel2 = Math.max(1, sel.displayHeight || sel.image.naturalHeight);
         ctx.save();
-        ctx.strokeStyle = '#22d3ee';
+        ctx.strokeStyle = '#7aa2f7';
         ctx.lineWidth = 2 / state.scale;
         ctx.setLineDash([6 / state.scale, 6 / state.scale]);
         ctx.strokeRect(sel.worldX || 0, sel.worldY || 0, iwSel2, ihSel2);
