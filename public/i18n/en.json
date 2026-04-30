@@ -42,23 +42,37 @@
   "accounts": {
     "add": "Add account",
     "checkAll": "Check All Accounts",
-    "checkAllTitle": "Check pixel capacity of all accounts"
+    "checkAllTitle": "Check pixel capacity of all accounts",
+    "checkingAll": "Checking all accounts..."
   },
   "table": {
     "accountName": "Account name",
-    "accountToken": "Account token",
     "droplets": "Droplets",
     "pixelRight": "Pixel limit",
     "status": "Status",
     "actions": "Action",
     "statusActive": "Active",
-    "statusPassive": "Inactive"
+    "statusPassive": "Inactive",
+    "search": "Search account name...",
+    "filterAll": "All",
+    "filterActive": "Active",
+    "filterInactive": "Inactive"
   },
   "form": {
     "accountNameLabel": "Account name",
     "accountNamePlaceholder": "e.g., Main account",
     "accountTokenLabel": "Account token",
     "accountTokenPlaceholder": "e.g., eyJhbGciOi...",
+    "proxyLabel": "HTTP Proxy",
+    "proxyOptional": "(Optional)",
+    "proxyUser": "User",
+    "proxyPass": "Password",
+    "proxyHost": "Host",
+    "proxyPort": "Port",
+    "checkProxy": "Check proxy",
+    "checkingProxy": "Checking...",
+    "proxyWorking": "✔ Proxy working",
+    "proxyFailed": "✘ Proxy failed",
     "worldXLabel": "World X",
     "worldYLabel": "World Y",
     "fetchButton": "Fetch",
