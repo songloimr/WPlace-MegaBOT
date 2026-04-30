@@ -2,6 +2,7 @@ node_modules
 db
 userdata
 .DS_Store
+.env
 .gitnexus
 .trae
 AGENTS.md
