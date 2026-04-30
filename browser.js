@@ -3,15 +3,73 @@ const { RequestInterceptionManager } = require('puppeteer-intercept-and-modify-r
 const path = require('path');
 const fs = require('fs');
 
+require('dotenv').config();
+
 const DATA_STORE_FILE = path.join(__dirname, 'db', 'browser-data.json');
+
+/* Cross-platform browser detection */
+const BROWSER_PATHS = {
+    darwin: [
+        { flag: 'chromium', path: '/Applications/Chromium.app/Contents/MacOS/Chromium' },
+        { flag: 'chrome',   path: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' }
+    ],
+    win32: [
+        { flag: 'chromium', path: 'C:\\Program Files\\Chromium\\Application\\chrome.exe' },
+        { flag: 'chromium', path: 'C:\\Program Files (x86)\\Chromium\\Application\\chrome.exe' },
+        { flag: 'chrome',   path: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' }
+    ]
+};
+
+function resolveBrowserPath() {
+    // 1. Explicit override
+    if (process.env.CHROME_PATH && process.env.CHROME_PATH.trim()) {
+        console.log(`[browser] Using CHROME_PATH from env: ${process.env.CHROME_PATH}`);
+        return process.env.CHROME_PATH.trim();
+    }
+
+    const platform = process.platform;
+    const candidates = BROWSER_PATHS[platform] || [];
+    const pref = (process.env.BROWSER_PREFERENCE || 'auto').toLowerCase();
+
+    // 2. Filter by preference if not 'auto'
+    const ordered = pref === 'auto'
+        ? candidates
+        : candidates.filter(c => c.flag === pref).concat(candidates.filter(c => c.flag !== pref));
+
+    // 3. First that exists
+    for (const c of ordered) {
+        try {
+            if (fs.existsSync(c.path)) {
+                console.log(`[browser] Found ${c.flag} at ${c.path}`);
+                return c.path;
+            }
+        } catch { /* skip */ }
+    }
+
+    // 4. Auto-detect by puppeteer-real-browser
+    console.log('[browser] No explicit path found; using auto-detection');
+    return null;
+}
+
+function buildBrowserArgs() {
+    const platform = process.platform;
+    const base = ['--disable-breakpad'];
+    if (platform === 'win32') {
+        base.unshift('--start-maximized');
+    }
+    return base;
+}
 
 async function init() {
     const userDataDir = path.join(__dirname, 'userdata');
     if (!fs.existsSync(userDataDir)) {
-        fs.mkdirSync(userDataDir);
+        fs.mkdirSync(userDataDir, { recursive: true });
     }
 
-    return connect({
+    const chromePath = resolveBrowserPath();
+    const args = buildBrowserArgs();
+
+    const config = {
         headless: false,
         turnstile: false,
         connectOption: {
@@ -19,15 +77,18 @@ async function init() {
         },
         customConfig: {
             userDataDir,
-            chromePath: '/Applications/Chromium.app/Contents/MacOS/Chromium'
         },
         disableXvfb: false,
-        args: [
-            '--startBrowser-maximized',
-            '--disable-breakpad',
-        ]
-    });
+        args
+    };
+
+    if (chromePath) {
+        config.customConfig.chromePath = chromePath;
+    }
+
+    return connect(config);
 }
+
 async function startBrowser() {
     let data = {
         fp: '',
