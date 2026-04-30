@@ -799,7 +799,12 @@ const accountTokenInput = document.getElementById('account-token-input');
 const accountIdInput = document.getElementById('account-id-input');
 const accountCancelBtn = document.getElementById('btn-account-cancel');
 const accountSaveBtn = document.getElementById('btn-account-save');
-const proxyInput = document.getElementById('proxy-input');
+const proxyUserInput = document.getElementById('proxy-user');
+const proxyPassInput = document.getElementById('proxy-pass');
+const proxyHostInput = document.getElementById('proxy-host');
+const proxyPortInput = document.getElementById('proxy-port');
+const checkProxyBtn = document.getElementById('btn-check-proxy');
+const proxyStatusEl = document.getElementById('proxy-status');
 const shopBackBtn = document.getElementById('btn-shop-back');
 let signDragging = false;
 let resizingItem = null;
@@ -817,6 +822,10 @@ let pendingZoomToSelected = false;
 let pendingZoomToItem = null;
 let readyLockedItem = null;
 let accountsData = [];
+let accountSearchTerm = '';
+let accountStatusFilter = 'all';
+let accountSortBy = null;
+let accountSortDir = 'desc';
 let readySelectedAccountIds = [];
 const MAX_READY_ACCOUNTS = 12;
 let autoSelecting = false;
@@ -2837,8 +2846,15 @@ function showAccountForm() {
         accountNameInput.value = '';
         accountTokenInput.value = '';
         accountIdInput.value = '';
-        proxyInput.value = '';
+        proxyUserInput.value = '';
+        proxyPassInput.value = '';
+        proxyHostInput.value = '';
+        proxyPortInput.value = '';
         accountNameInput.focus();
+    } catch { }
+    try {
+        accountSaveBtn.textContent = t('buttons.add');
+        proxyStatusEl.hidden = true;
     } catch { }
 }
 function openEditAccount(row) {
@@ -2850,7 +2866,20 @@ function openEditAccount(row) {
         accountNameInput.value = row.name || '';
         accountTokenInput.value = row.token || '';
         accountIdInput.value = String(row.id || '');
-        proxyInput.value = row.proxy || '';
+        const proxy = row.proxy || '';
+        const atIdx = proxy.lastIndexOf('@');
+        let userpass = '', hostport = proxy;
+        if (atIdx >= 0) {
+            userpass = proxy.slice(0, atIdx);
+            hostport = proxy.slice(atIdx + 1);
+        }
+        const colonIdx = userpass.indexOf(':');
+        proxyUserInput.value = colonIdx >= 0 ? userpass.slice(0, colonIdx) : '';
+        proxyPassInput.value = colonIdx >= 0 ? userpass.slice(colonIdx + 1) : '';
+        const hpColon = hostport.lastIndexOf(':');
+        proxyHostInput.value = hpColon >= 0 ? hostport.slice(0, hpColon) : hostport;
+        proxyPortInput.value = hpColon >= 0 ? hostport.slice(hpColon + 1) : '';
+        proxyStatusEl.hidden = true;
         accountNameInput.focus();
     } catch { }
 
@@ -3452,25 +3481,38 @@ if (shopBackBtn) {
     shopBackBtn.addEventListener('click', showAccountList);
 }
 function renderAccountsTable(rows) {
-    const sortedRows = Array.isArray(rows) ? rows.slice().sort((a, b) => {
-        const aActive = a && a.active !== false;
-        const bActive = b && b.active !== false;
-        if (aActive === bActive) return 0;
-        return aActive ? 1 : -1; // Inactive first
-    }) : [];
-    accountsData = sortedRows.slice();
+    let filteredRows = Array.isArray(rows) ? rows.slice() : [];
+    if (accountSearchTerm) {
+        filteredRows = filteredRows.filter(row => {
+            const name = (row && row.name || '').toLowerCase();
+            return name.includes(accountSearchTerm);
+        });
+    }
+    if (accountStatusFilter === 'active') {
+        filteredRows = filteredRows.filter(row => row && row.active !== false);
+    } else if (accountStatusFilter === 'inactive') {
+        filteredRows = filteredRows.filter(row => row && row.active === false);
+    }
+    if (accountSortBy === 'droplets') {
+        filteredRows.sort((a, b) => {
+            const aVal = (a && a.droplets != null) ? Number(a.droplets) : -1;
+            const bVal = (b && b.droplets != null) ? Number(b.droplets) : -1;
+            return accountSortDir === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+    } else {
+        filteredRows.sort((a, b) => {
+            const aActive = a && a.active !== false;
+            const bActive = b && b.active !== false;
+            if (aActive === bActive) return 0;
+            return aActive ? 1 : -1;
+        });
+    }
+    accountsData = filteredRows.slice();
     try { recomputeActivePalette(); } catch { }
     accountsTbody.innerHTML = '';
-    sortedRows.forEach(row => {
+    filteredRows.forEach(row => {
         const tr = document.createElement('tr');
         const tdName = document.createElement('td'); tdName.textContent = row.name || '';
-        const tdToken = document.createElement('td');
-        const fullToken = row.token || '';
-        const shortToken = (fullToken && fullToken.length > 12)
-            ? (fullToken.slice(0, 6) + '…' + fullToken.slice(-6))
-            : fullToken;
-        tdToken.textContent = shortToken;
-        tdToken.title = fullToken;
         const tdDroplets = document.createElement('td');
         const dRaw = (row && row.droplets != null) ? Number(row.droplets) : null;
         tdDroplets.textContent = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
@@ -3482,7 +3524,10 @@ function renderAccountsTable(rows) {
         const isActive = row && row.active !== false;
         tdPixel.textContent = (count == null || max == null) ? '-' : (String(count) + ' / ' + String(max));
         const tdStatus = document.createElement('td');
-        tdStatus.textContent = isActive ? t('table.statusActive') : t('table.statusPassive');
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
+        badge.textContent = isActive ? t('table.statusActive') : t('table.statusPassive');
+        tdStatus.appendChild(badge);
         const tdActions = document.createElement('td');
         const actionsWrap = document.createElement('div');
         actionsWrap.className = 'table-actions';
@@ -3513,7 +3558,6 @@ function renderAccountsTable(rows) {
         shopBtn.type = 'button';
         shopBtn.className = 'app-btn';
         shopBtn.textContent = t('buttons.shop');
-        // Disable shop for inactive accounts
         try { shopBtn.disabled = !isActive; } catch { }
         shopBtn.addEventListener('click', async () => {
             if (shopBtn.disabled) return;
@@ -3548,7 +3592,6 @@ function renderAccountsTable(rows) {
         actionsWrap.appendChild(rowBottom);
         tdActions.appendChild(actionsWrap);
         tr.appendChild(tdName);
-        tr.appendChild(tdToken);
         tr.appendChild(tdDroplets);
         tr.appendChild(tdPixel);
         tr.appendChild(tdStatus);
@@ -3580,6 +3623,8 @@ function renderAccountsTable(rows) {
 if (checkAllBtn) {
     checkAllBtn.addEventListener('click', async () => {
         if (bulkRefreshInFlight) return;
+        const overlay = document.getElementById('check-all-overlay');
+        if (overlay) overlay.hidden = false;
         try { checkAllBtn.classList.add('spinning'); } catch { }
         try { checkAllBtn.disabled = true; } catch { }
         try {
@@ -3587,6 +3632,7 @@ if (checkAllBtn) {
         } finally {
             try { checkAllBtn.classList.remove('spinning'); } catch { }
             try { checkAllBtn.disabled = false; } catch { }
+            if (overlay) overlay.hidden = true;
         }
     });
 }
@@ -3595,7 +3641,14 @@ if (accountSaveBtn && accountsTbody) {
         const id = (accountIdInput.value || '').trim();
         const name = (accountNameInput.value || '').trim();
         const token = (accountTokenInput.value || '').trim();
-        const proxy = (proxyInput.value || '').trim();
+        const proxyParts = [];
+        if (proxyUserInput.value.trim()) proxyParts.push(proxyUserInput.value.trim());
+        if (proxyPassInput.value.trim()) proxyParts.push(proxyPassInput.value.trim());
+        let proxy = '';
+        if (proxyHostInput.value.trim() && proxyPortInput.value.trim()) {
+            const up = proxyParts.length ? proxyParts.join(':') + '@' : '';
+            proxy = up + proxyHostInput.value.trim() + ':' + proxyPortInput.value.trim();
+        }
         try {
             try { await loadAccounts(); } catch { }
             try {
@@ -3637,6 +3690,70 @@ if (accountSaveBtn && accountsTbody) {
             await loadAccounts();
             showAccountList();
         } catch { }
+    });
+}
+const accountSearchInput = document.getElementById('account-search');
+if (accountSearchInput) {
+    accountSearchInput.addEventListener('input', (e) => {
+        accountSearchTerm = e.target.value.trim().toLowerCase();
+        loadAccounts();
+    });
+}
+document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        accountStatusFilter = btn.dataset.filter;
+        loadAccounts();
+    });
+});
+const sortHeader = document.querySelector('#accounts-table th[data-sort]');
+if (sortHeader) {
+    sortHeader.addEventListener('click', () => {
+        if (accountSortBy === 'droplets') {
+            accountSortDir = accountSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            accountSortBy = 'droplets';
+            accountSortDir = 'desc';
+        }
+        const indicator = sortHeader.querySelector('.sort-indicator');
+        if (indicator) {
+            document.querySelectorAll('.sort-indicator').forEach(s => { s.classList.remove('asc', 'desc'); });
+            indicator.classList.add(accountSortDir);
+        }
+        loadAccounts();
+    });
+}
+if (checkProxyBtn) {
+    checkProxyBtn.addEventListener('click', async () => {
+        const host = proxyHostInput.value.trim();
+        const port = proxyPortInput.value.trim();
+        if (!host || !port) { showToast('Enter host and port first', 'error'); return; }
+        checkProxyBtn.disabled = true;
+        checkProxyBtn.textContent = t('form.checkingProxy') || 'Checking...';
+        proxyStatusEl.hidden = true;
+        try {
+            const res = await fetch('/api/check-proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: proxyUserInput.value.trim(),
+                    password: proxyPassInput.value.trim(),
+                    host, port
+                })
+            });
+            const data = await res.json();
+            proxyStatusEl.textContent = data.ok
+                ? (t('form.proxyWorking') || '✔ Proxy working')
+                : (t('form.proxyFailed') || '✘ Proxy failed');
+            proxyStatusEl.className = 'proxy-status ' + (data.ok ? 'success' : 'error');
+        } catch {
+            proxyStatusEl.textContent = t('form.proxyFailed') || '✘ Proxy failed';
+            proxyStatusEl.className = 'proxy-status error';
+        }
+        proxyStatusEl.hidden = false;
+        checkProxyBtn.disabled = false;
+        checkProxyBtn.textContent = t('form.checkProxy') || 'Check proxy';
     });
 }
 let accountTokenInputDebounce = null;
