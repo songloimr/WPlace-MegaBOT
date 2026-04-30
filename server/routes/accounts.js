@@ -177,6 +177,31 @@ function registerAccountRoutes(app) {
       res.status(500).json({ error: 'refresh failed', message: e.message });
     }
   });
+  app.post('/api/check-proxy', async (req, res) => {
+    try {
+      const { user, password, host, port } = req.body;
+      if (!host || !port) {
+        return res.status(400).json({ ok: false, error: 'host and port required' });
+      }
+      const userpass = [user, password].filter(Boolean).join(':');
+      const proxyStr = userpass ? userpass + '@' + host + ':' + port : host + ':' + port;
+
+      const impit = createImpit({
+        proxyUrl: proxyStr,
+        timeout: 15_000
+      });
+      const checkRes = await impit.fetch('http://httpbin.org/ip');
+      if (!checkRes.ok) {
+        return res.json({ ok: false, error: 'proxy returned status ' + checkRes.status });
+      }
+      const data = await checkRes.json();
+      res.json({ ok: true, ip: data.origin });
+    } catch (e) {
+      res.status(200).json({ ok: false, error: e.message });
+    }
+  });
 }
+
+
 
 module.exports = { registerAccountRoutes };
