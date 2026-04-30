@@ -20,6 +20,7 @@ body {
     background: #ffffff;
     cursor: grab;
     z-index: 0;
+    will-change: transform;
 }
 
 body.dragging #c {
@@ -192,6 +193,7 @@ button:hover {
 }
 
 #selection-overlay {
+    will-change: contents;
     position: fixed;
     left: 0;
     top: 0;
@@ -205,6 +207,7 @@ body.dragging-sign #sign {
 }
 
 #sidebar {
+    contain: layout style;
     position: fixed;
     top: 12px;
     left: 12px;
@@ -1040,6 +1043,7 @@ body.no-scroll {
 }
 
 #control-panel {
+    contain: layout style;
     position: relative;
     background: rgba(17, 20, 24, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1236,6 +1240,7 @@ body.no-scroll {
 }
 
 #color-palette {
+    contain: layout style;
     position: fixed;
     bottom: 12px;
     left: 50%;

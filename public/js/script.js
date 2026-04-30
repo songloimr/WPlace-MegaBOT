@@ -1,216 +1,22 @@
-const I18N_DEFAULT_LANG = 'en';
-let I18N_LANG = I18N_DEFAULT_LANG;
-let I18N_STRINGS = {};
-const LANGS = [
-    { value: 'tr', label: 'Türkçe' },
-    { value: 'en', label: 'English' },
-    { value: 'de', label: 'Deutsch' },
-    { value: 'es', label: 'Español' },
-    { value: 'fr', label: 'Français' },
-    { value: 'ru', label: 'Русский' },
-    { value: 'cn', label: '中文' },
-    { value: 'ja', label: '日本語' }
-];
-function getSavedLang() { try { return localStorage.getItem('lang') || I18N_DEFAULT_LANG; } catch { return I18N_DEFAULT_LANG; } }
-function saveLang(lang) { try { localStorage.setItem('lang', lang); } catch { } }
-// Fetch helpers: chuẩn hóa thao tác mạng và kiểm tra trạng thái
-async function fetchOk(url, options = {}) {
-    const res = await fetch(url, { cache: 'no-store', ...options });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res;
-}
-async function fetchJson(url, options = {}) {
-    const res = await fetchOk(url, options);
-    return res.json();
-}
-async function loadI18n(lang) {
-    try {
-        I18N_STRINGS = await fetchJson('/i18n/' + encodeURIComponent(lang) + '.json');
-    } catch {
-        I18N_STRINGS = {};
-    }
-}
-function t(key, vars) {
-    const parts = String(key || '').split('.');
-    let cur = I18N_STRINGS;
-    for (let i = 0; i < parts.length; i++) {
-        const k = parts[i];
-        if (cur && Object.prototype.hasOwnProperty.call(cur, k)) cur = cur[k]; else { cur = null; break; }
-    }
-    let s = (typeof cur === 'string') ? cur : String(key || '');
-    if (vars && typeof s === 'string') {
-        s = s.replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? String(vars[k]) : ''));
-    }
-    return s;
-}
-function applyTranslations() {
-    document.documentElement.lang = I18N_LANG;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        el.textContent = t(el.getAttribute('data-i18n'));
-    });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
-    });
-    document.querySelectorAll('[data-i18n-title]').forEach(el => {
-        el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
-    });
-    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
-        el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria-label')));
-    });
-
-    const p = document.getElementById('pixel-power');
-    if (p) {
-        const count = Number(p.getAttribute('data-count') || '0');
-        const max = Number(p.getAttribute('data-max') || '0');
-        p.textContent = t('pixel.powerLabel', { count, max });
-    }
-    const rp = document.getElementById('ready-pixel');
-    if (rp) {
-        const count = Number(rp.getAttribute('data-count') || '0');
-        const max = Number(rp.getAttribute('data-max') || '0');
-        rp.textContent = t('pixel.powerLabel', { count, max });
-    }
-    // Re-layout floating UI elements after text size changes
-    layoutSoundControl();
-    layoutLangSwitch();
-}
-async function setLanguage(lang) {
-    I18N_LANG = lang || I18N_DEFAULT_LANG;
-    saveLang(I18N_LANG);
-    await loadI18n(I18N_LANG);
-    applyTranslations();
-    refreshLangDropdown();
-    try { if (typeof loadAccounts === 'function') { await loadAccounts(); } } catch { }
-}
-async function initI18n() {
-    const initial = getSavedLang();
-    await setLanguage(initial);
-    const sel = document.getElementById('lang-select');
-    if (sel) {
-        sel.value = I18N_LANG;
-        sel.addEventListener('change', async () => { await setLanguage(sel.value); });
-    }
-}
-
-
-function ensureToastContainer() {
-    let el = document.getElementById('app-toast-container');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'app-toast-container';
-        document.body.appendChild(el);
-    }
-    return el;
-}
-function showToast(message, variant = 'error', durationMs = 3000) {
-    const container = ensureToastContainer();
-    const toast = document.createElement('div');
-    toast.className = 'app-toast ' + variant;
-    const msg = document.createElement('div');
-    msg.className = 'app-toast-message';
-    msg.textContent = message;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'app-toast-close';
-    btn.textContent = '×';
-    btn.addEventListener('click', () => hideToast(toast));
-    toast.appendChild(msg);
-    toast.appendChild(btn);
-    container.appendChild(toast);
-    const t = setTimeout(() => hideToast(toast), durationMs);
-    toast._timer = t;
-}
-function hideToast(toast) {
-    if (!toast || toast.classList.contains('hide')) return;
-    if (toast._timer) clearTimeout(toast._timer);
-    toast.classList.add('hide');
-    toast.addEventListener('animationend', () => {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, { once: true });
-}
-
-function getLangLabel(code) { const f = LANGS.find(x => x.value === code); return f ? f.label : code; }
-function refreshLangDropdown() {
-    const cur = document.getElementById('lang-current');
-    if (cur) cur.textContent = getLangLabel(I18N_LANG);
-    document.querySelectorAll('#lang-menu .lang-item').forEach(btn => {
-        const v = btn.getAttribute('data-value');
-        btn.setAttribute('aria-selected', String(v === I18N_LANG));
-    });
-    const sel = document.getElementById('lang-select');
-    if (sel) sel.value = I18N_LANG;
-}
-function ensureLangSwitch() {
-    let el = document.getElementById('lang-switch');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'lang-switch';
-        const wrap = document.createElement('div');
-        wrap.className = 'lang-dropdown';
-        wrap.innerHTML = '<button id="lang-button" class="lang-button" type="button" aria-haspopup="listbox" aria-expanded="false"><span id="lang-current"></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg></button><div id="lang-menu" class="lang-menu" role="listbox"></div><select id="lang-select" hidden></select>';
-        el.appendChild(wrap);
-        document.body.appendChild(el);
-        const menu = wrap.querySelector('#lang-menu');
-        const select = wrap.querySelector('#lang-select');
-        LANGS.forEach(l => {
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'lang-item';
-            item.setAttribute('role', 'option');
-            item.setAttribute('data-value', l.value);
-            const text = document.createElement('span');
-            text.textContent = l.label;
-            item.appendChild(text);
-            menu.appendChild(item);
-            const opt = document.createElement('option');
-            opt.value = l.value; opt.textContent = l.label; select.appendChild(opt);
-        });
-    }
-    return el;
-}
-function bindLangDropdownEvents() {
-    const btn = document.getElementById('lang-button');
-    const menu = document.getElementById('lang-menu');
-    if (!btn || !menu) return;
-    function open() { menu.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
-    function close() { menu.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
-    function toggle() { if (menu.classList.contains('open')) close(); else open(); }
-    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
-    document.addEventListener('click', () => { if (menu.classList.contains('open')) close(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-    menu.querySelectorAll('.lang-item').forEach(elm => {
-        elm.addEventListener('click', async () => {
-            const v = elm.getAttribute('data-value');
-            await setLanguage(v);
-            close();
-        });
+/* Render scheduling — RAF-batched */
+let _renderScheduled = false;
+function scheduleRender() {
+    if (_renderScheduled) return;
+    _renderScheduled = true;
+    requestAnimationFrame(() => {
+        _renderScheduled = false;
+        render();
     });
 }
-function layoutLangSwitch() {
-    const ls = document.getElementById('lang-switch');
-    const sidebarEl = document.getElementById('sidebar');
-    const formEl = document.getElementById('form');
-    if (!ls || !sidebarEl || !formEl) return;
-    const sidebarRect = sidebarEl.getBoundingClientRect();
-    const formRect = formEl.getBoundingClientRect();
-    const topY = Math.min(sidebarRect.top, formRect.top) + 4;
-    const xLeft = sidebarRect.right + 12;
-    const xRight = formRect.left - 12;
-    const center = (xLeft + xRight) / 2;
-    const width = Math.min(220, Math.max(140, xRight - xLeft));
-    ls.style.width = String(width) + 'px';
-    ls.style.top = String(topY) + 'px';
-    ls.style.left = String(center - (width / 2)) + 'px';
+let _overlayScheduled = false;
+function scheduleOverlayDraw() {
+    if (_overlayScheduled) return;
+    _overlayScheduled = true;
+    requestAnimationFrame(() => {
+        _overlayScheduled = false;
+        drawSelectionOverlay();
+    });
 }
-window.addEventListener('resize', layoutLangSwitch);
-window.addEventListener('scroll', layoutLangSwitch, { passive: true });
-
-function layoutSoundControl() { /* CSS handles positioning now */ }
-// JS listeners không cần thiết vì CSS đã xử lý vị trí
-
-
-ensureLangSwitch(); bindLangDropdownEvents(); initI18n(); layoutLangSwitch();
-layoutSoundControl();
 
 const areaInput = document.getElementById('area-code');
 const noInput = document.getElementById('no');
@@ -224,27 +30,6 @@ const saveFavClose = document.getElementById('save-fav-close');
 const favNameInput = document.getElementById('fav-name-input');
 const favSaveBtn = document.getElementById('fav-save-btn');
 
-let favoritesCache = [];
-async function refreshFavorites() {
-    try {
-        favoritesCache = await fetchJson('/api/favorites');
-    } catch {
-        favoritesCache = [];
-    }
-}
-function getFavorites() { return favoritesCache; }
-async function addFavorite(entry) {
-    try {
-        await fetchOk('/api/favorites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-    } catch { }
-    await refreshFavorites();
-}
-async function removeFavorite(entry) {
-    try {
-        await fetchOk('/api/favorites', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-    } catch { }
-    await refreshFavorites();
-}
 function currentLocation() {
     try { return JSON.parse(localStorage.getItem('lastFetch') || 'null'); } catch { return null; }
 }
@@ -369,7 +154,7 @@ resizeSelectionOverlay();
 window.addEventListener('resize', resizeSelectionOverlay);
 // Background refresh and recent paint cache
 const BACKGROUND_REFRESH_MS = 30 * 1000;
-const PAINT_REQUEST_TIMEOUT_MS = 10000;
+
 const RECENT_CACHE_MAX = 10000;
 let isPainting = false;
 const recentPaintCache = new Map();
@@ -406,12 +191,12 @@ function scheduleBackgroundRefresh(delay = BACKGROUND_REFRESH_MS) {
         }
         if (recentPaintCache.size > 0) {
             recentPaintCache.clear();
-            drawSelectionOverlay();
+            scheduleOverlayDraw();
             console.log('Pixel cache cleared');
         }
         const ok = await reloadCurrentBackground();
         if (ok) {
-            drawSelectionOverlay();
+            scheduleOverlayDraw();
             console.log('Background refreshed');
         }
         scheduleBackgroundRefresh();
@@ -432,211 +217,6 @@ const soundToggleBtn = document.getElementById('sound-toggle');
 const soundVolumeEl = document.getElementById('sound-volume');
 const soundVolumeValue = document.getElementById('sound-volume-value');
 
-let soundEnabled = true;
-let soundVolume = 1.0;
-try {
-    const se = localStorage.getItem('sound.enabled');
-    const sv = localStorage.getItem('sound.volume');
-    if (se != null) soundEnabled = (se === 'true');
-    if (sv != null && !isNaN(Number(sv))) soundVolume = Math.min(1, Math.max(0, Number(sv)));
-} catch { }
-
-let audioCtx = null;
-function ensureAudioCtx() {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx && audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch { } }
-    } catch { }
-    return audioCtx;
-}
-function playNotifySound() {
-    if (!soundEnabled) return;
-    const ctx = ensureAudioCtx();
-    if (!ctx) return;
-    try { ctx.resume(); } catch { }
-    const now = ctx.currentTime;
-
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.0001, now);
-    const targetVol = Math.max(0.0001, soundVolume * 0.8);
-    masterGain.gain.exponentialRampToValueAtTime(targetVol, now + 0.02);
-    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
-    masterGain.connect(ctx.destination);
-
-    const delay = ctx.createDelay(0.5);
-    delay.delayTime.value = 0.14;
-    const feedback = ctx.createGain(); feedback.gain.value = 0.25;
-    const delayMix = ctx.createGain(); delayMix.gain.value = 0.35;
-    delay.connect(feedback); feedback.connect(delay);
-    delay.connect(delayMix); delayMix.connect(masterGain);
-
-    function makeVoice(frequencyHz, startOffsetSec, durationSec) {
-        const startAt = now + startOffsetSec;
-        const stopAt = startAt + durationSec;
-
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(frequencyHz * 0.995, startAt);
-        osc.frequency.linearRampToValueAtTime(frequencyHz, startAt + 0.08);
-
-        const overtone = ctx.createOscillator();
-        overtone.type = 'triangle';
-        overtone.frequency.value = frequencyHz * 2;
-        overtone.detune.value = 3;
-
-        const vibrato = ctx.createOscillator();
-        vibrato.type = 'sine';
-        vibrato.frequency.value = 6;
-        const vibratoGain = ctx.createGain();
-        vibratoGain.gain.value = frequencyHz * 0.015;
-        vibrato.connect(vibratoGain);
-        vibratoGain.connect(osc.frequency);
-
-        const voiceGain = ctx.createGain();
-        voiceGain.gain.setValueAtTime(0.0001, startAt);
-        voiceGain.gain.exponentialRampToValueAtTime(targetVol, startAt + 0.03);
-        voiceGain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
-
-        osc.connect(voiceGain);
-        const overtoneGain = ctx.createGain(); overtoneGain.gain.value = 0.22;
-        overtone.connect(overtoneGain); overtoneGain.connect(voiceGain);
-
-        const dry = ctx.createGain(); dry.gain.value = 1.0;
-        voiceGain.connect(dry); dry.connect(masterGain);
-        const wetSend = ctx.createGain(); wetSend.gain.value = 0.55;
-        voiceGain.connect(wetSend); wetSend.connect(delay);
-
-        osc.start(startAt);
-        overtone.start(startAt);
-        vibrato.start(startAt);
-        vibrato.stop(stopAt);
-        overtone.stop(stopAt);
-        osc.stop(stopAt + 0.01);
-    }
-
-    makeVoice(659.25, 0.00, 0.50);
-    makeVoice(987.77, 0.09, 0.50);
-    makeVoice(1318.51, 0.18, 0.65);
-
-    try {
-        const noiseDur = 0.18;
-        const noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
-        const ch = noiseBuf.getChannelData(0);
-        for (let i = 0; i < ch.length; i++) {
-            const t = i / ch.length;
-            ch[i] = (Math.random() * 2 - 1) * (1 - t) * (1 - t) * 0.5;
-        }
-        const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
-        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 4200; bp.Q.value = 1.1;
-        const ng = ctx.createGain(); ng.gain.value = targetVol * 0.18;
-        noise.connect(bp); bp.connect(ng); ng.connect(masterGain);
-        noise.start(now);
-        noise.stop(now + noiseDur);
-    } catch { }
-}
-function updateSoundUi() {
-    try {
-        if (soundVolumeEl) {
-            const percent = Math.round(soundVolume * 100);
-            try { soundVolumeEl.setAttribute('aria-valuenow', String(percent)); } catch { }
-            try {
-                const fill = soundVolumeEl.querySelector('.slider-fill');
-                const thumb = soundVolumeEl.querySelector('.slider-thumb');
-                if (fill) fill.style.height = percent + '%';
-                if (thumb) thumb.style.bottom = percent + '%';
-            } catch { }
-        }
-        if (soundVolumeValue) soundVolumeValue.textContent = Math.round(soundVolume * 100) + '%';
-        if (soundToggleBtn) {
-            soundToggleBtn.classList.toggle('muted', !soundEnabled || soundVolume === 0);
-            soundToggleBtn.textContent = (!soundEnabled || soundVolume === 0) ? '🔇' : (soundVolume < 0.5 ? '🔈' : '🔊');
-            soundToggleBtn.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
-        }
-    } catch { }
-}
-function setSoundEnabled(v) {
-    soundEnabled = !!v;
-    try { localStorage.setItem('sound.enabled', soundEnabled ? 'true' : 'false'); } catch { }
-    updateSoundUi();
-}
-function setSoundVolume(v) {
-    const n = Number(v);
-    if (!isNaN(n)) {
-        const normalized = n > 1 ? (n / 100) : n;
-        soundVolume = Math.min(1, Math.max(0, normalized));
-        try { localStorage.setItem('sound.volume', String(soundVolume)); } catch { }
-        updateSoundUi();
-    }
-}
-if (soundToggleBtn) {
-    soundToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isZero = soundVolume === 0;
-        if (isZero) {
-            setSoundEnabled(true);
-            setSoundVolume(1);
-            try { ensureAudioCtx(); } catch { }
-        } else {
-            setSoundVolume(0);
-        }
-    });
-    soundToggleBtn.addEventListener('mouseenter', () => {
-        const sc = document.getElementById('sound-control');
-        if (sc) sc.classList.add('open');
-    });
-    soundToggleBtn.addEventListener('mouseleave', (e) => {
-        const sc = document.getElementById('sound-control');
-        if (!sc) return;
-        const to = e && e.relatedTarget ? e.relatedTarget : null;
-        if (to && sc.contains(to)) return;
-        setTimeout(() => { if (!sc.matches(':hover')) sc.classList.remove('open'); }, 120);
-    });
-    // Toggle mute with middle-click
-    soundToggleBtn.addEventListener('auxclick', (e) => {
-        if (e && e.button === 1) { e.preventDefault(); setSoundEnabled(!soundEnabled); updateSoundUi(); }
-    });
-}
-if (soundVolumeEl) {
-    let isDraggingVol = false;
-    const onMove = (clientY) => {
-        const rect = soundVolumeEl.getBoundingClientRect();
-        const y = Math.min(Math.max(clientY - rect.top, 0), rect.height);
-        const ratio = 1 - (y / rect.height);
-        setSoundVolume(ratio);
-        if (soundEnabled) { try { ensureAudioCtx(); } catch { } }
-    };
-    soundVolumeEl.addEventListener('pointerdown', (e) => {
-        isDraggingVol = true;
-        try { soundVolumeEl.setPointerCapture(e.pointerId); } catch { }
-        onMove(e.clientY);
-        const sc = document.getElementById('sound-control');
-        if (sc) sc.classList.add('open');
-    });
-    soundVolumeEl.addEventListener('pointermove', (e) => {
-        if (!isDraggingVol) return;
-        onMove(e.clientY);
-    });
-    const endDrag = () => {
-        if (!isDraggingVol) return;
-        isDraggingVol = false;
-        const sc = document.getElementById('sound-control');
-        setTimeout(() => { if (sc && !sc.matches(':hover')) sc.classList.remove('open'); }, 200);
-    };
-    soundVolumeEl.addEventListener('pointerup', endDrag);
-    soundVolumeEl.addEventListener('pointercancel', endDrag);
-    soundVolumeEl.addEventListener('mouseleave', () => {
-        const sc = document.getElementById('sound-control');
-        setTimeout(() => { if (sc && !sc.matches(':hover')) sc.classList.remove('open'); }, 200);
-    });
-}
-// Close panel when clicking outside
-document.addEventListener('click', (e) => {
-    const sc = document.getElementById('sound-control');
-    if (!sc) return;
-    if (sc.contains(e.target)) return;
-    sc.classList.remove('open');
-});
-updateSoundUi();
 
 // Movement controls (pixel-by-pixel image movement)
 const movementBtn = document.getElementById('btn-movement');
@@ -646,109 +226,10 @@ const moveDownBtn = document.getElementById('move-down');
 const moveLeftBtn = document.getElementById('move-left');
 const moveRightBtn = document.getElementById('move-right');
 
-function isMovementOpen() {
-    try { return !!(movementPopup && !movementPopup.hidden); } catch { return false; }
-}
-function getSelectedItem() {
-    try {
-        return (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
-    } catch { return null; }
-}
-function updateMovementButtonEnabled() {
-    if (!movementBtn) return;
-    const it = getSelectedItem();
-    let enable = false;
-    try { enable = !!(it && it.image && it.image.complete && !(it.locked || it.lockedByReady)); } catch { enable = false; }
-    try { movementBtn.disabled = !enable; } catch { }
-    // Do not auto-close when disabled due to transient selection changes; keep user's choice.
-}
-function clampPositionForItem(item, x, y) {
-    let nx = Math.round(x | 0), ny = Math.round(y | 0);
-    try {
-        if (!img || !item || !item.image || !item.image.naturalWidth || !item.image.naturalHeight) return { x: nx, y: ny };
-        const iw = item.image.naturalWidth | 0, ih = item.image.naturalHeight | 0;
-        if (!ALLOW_DRAG_BEYOND_NINE) {
-            const rects = getAllowedPlacementRects();
-            if (!rects || rects.length === 0) {
-                const maxX = Math.max(0, img.width - iw);
-                const maxY = Math.max(0, img.height - ih);
-                return { x: Math.min(Math.max(0, nx), maxX), y: Math.min(Math.max(0, ny), maxY) };
-            }
-            const bounds = getCompositeBounds(rects);
-            const maxX = (bounds.maxX | 0) - iw;
-            const maxY = (bounds.maxY | 0) - ih;
-            const minX = bounds.minX | 0;
-            const minY = bounds.minY | 0;
-            nx = Math.min(Math.max(minX, nx), maxX);
-            ny = Math.min(Math.max(minY, ny), maxY);
-            return { x: nx, y: ny };
-        }
-        // If allowed beyond nine: keep at least 1 px inside composite bounds (with some slack)
-        const rects = getAllowedPlacementRects();
-        if (!rects || rects.length === 0) {
-            const minX = 1 - iw;
-            const minY = 1 - ih;
-            const maxX = (img.width | 0) - 1;
-            const maxY = (img.height | 0) - 1;
-            nx = Math.min(Math.max(minX, nx), maxX);
-            ny = Math.min(Math.max(minY, ny), maxY);
-            return { x: nx, y: ny };
-        }
-        const b = getCompositeBounds(rects);
-        const outerSlack = 512;
-        const minX = (b.minX | 0) - iw + 1 - outerSlack;
-        const minY = (b.minY | 0) - ih + 1 - outerSlack;
-        const maxX = (b.maxX | 0) - 1 + outerSlack;
-        const maxY = (b.maxY | 0) - 1 + outerSlack;
-        nx = Math.min(Math.max(minX, nx), maxX);
-        ny = Math.min(Math.max(minY, ny), maxY);
-        return { x: nx, y: ny };
-    } catch { return { x: nx, y: ny }; }
-}
-function moveSelectedBy(dx, dy, step) {
-    const it = getSelectedItem();
-    if (!it || !it.image || !it.image.complete) { try { showToast(t('messages.noSelectedImage'), 'error', 1800); } catch { } return; }
-    if (it.locked || it.lockedByReady) { return; }
-    const mult = Number.isFinite(step) ? Math.max(1, step | 0) : 1;
-    const targetX = (it.worldX || 0) + dx * mult;
-    const targetY = (it.worldY || 0) + dy * mult;
-    const clamped = clampPositionForItem(it, targetX, targetY);
-    if (clamped.x === (it.worldX || 0) && clamped.y === (it.worldY || 0)) return;
-    it.worldX = clamped.x;
-    it.worldY = clamped.y;
-    try { localStorage.setItem('last.image.worldX', String(it.worldX || 0)); localStorage.setItem('last.image.worldY', String(it.worldY || 0)); } catch { }
-    try { it._placedCountCache = null; } catch { }
-    render();
-    try { updatePixelMarkers(); } catch { }
-    if (isReadyOpen()) { try { updateReadySelectionLabel(); } catch { } }
-    try { saveImagesToStorage(); } catch { }
-}
-function setupMoveHold(btn, dx, dy) {
-    if (!btn) return;
-    const stop = () => {
-        try { if (btn._mvInt) { clearInterval(btn._mvInt); btn._mvInt = null; } } catch { }
-        try { if (btn._mvTmo) { clearTimeout(btn._mvTmo); btn._mvTmo = null; } } catch { }
-    };
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (btn._skipNextClick) { btn._skipNextClick = false; return; }
-        moveSelectedBy(dx, dy, e && e.shiftKey ? 5 : 1);
-    });
-    btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        const step = e && e.shiftKey ? 5 : 1;
-        moveSelectedBy(dx, dy, step);
-        btn._skipNextClick = true;
-        try { btn.setPointerCapture(e.pointerId); } catch { }
-        btn._mvTmo = setTimeout(() => {
-            btn._mvInt = setInterval(() => moveSelectedBy(dx, dy, step), 50);
-        }, 250);
-    });
-    const end = () => { stop(); setTimeout(() => { btn._skipNextClick = false; }, 0); };
-    btn.addEventListener('pointerup', end);
-    btn.addEventListener('pointercancel', end);
-    btn.addEventListener('pointerleave', end);
-}
+
+
+
+
 if (movementBtn && movementPopup) {
     function clearKbdPressVisuals() {
         setKbdVisual('up', false);
@@ -902,105 +383,7 @@ let readyMouseDownPt = null;
 let readyMouseMoved = false;
 let autoSelectDeleteMode = false;
 const READY_CLICK_MOVE_TOLERANCE = 4;
-function getPaletteRgbById(id) {
-    const arr = (ACTIVE_PALETTE && Array.isArray(ACTIVE_PALETTE)) ? ACTIVE_PALETTE : PALETTE;
-    for (let i = 0; i < arr.length; i++) { if (arr[i].id === id) return arr[i].rgb; }
-    return [255, 255, 255];
-}
-const COLORED_MARKER_CACHE = new Map();
-function getMarkerSrcForColorId(colorId) {
-    if (colorId == null) return SELECTED_ICON_SRC;
-    const k = String(colorId);
-    if (COLORED_MARKER_CACHE.has(k)) return COLORED_MARKER_CACHE.get(k);
-    const rgb = getPaletteRgbById(colorId);
-    const off = document.createElement('canvas');
-    off.width = 8; off.height = 8;
-    const octx = off.getContext('2d');
-    octx.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
-    octx.fillRect(0, 0, off.width, off.height);
-    const url = off.toDataURL('image/png');
-    COLORED_MARKER_CACHE.set(k, url);
-    return url;
-}
 
-function getSelectedMap(item) {
-    if (!item) return null;
-    if (!item._selectedPixels) item._selectedPixels = new Map();
-    return item._selectedPixels;
-}
-function keyFor(x, y) { return String(x) + ',' + String(y); }
-function isPixelSelected(item, x, y) {
-    const map = getSelectedMap(item); if (!map) return false; return map.has(keyFor(x, y));
-}
-function addPixelSelection(item, x, y, colorIdOverride = null) {
-    const map = getSelectedMap(item); if (!map) return false;
-    const k = keyFor(x, y); if (map.has(k)) return false;
-    let effectiveColorId = colorIdOverride;
-    if (effectiveColorId == null) {
-        try { effectiveColorId = getItemPixelPaletteId(item, x, y); } catch { }
-    }
-    if (effectiveColorId != null && effectiveColorId !== 0 && isPremiumColorId(effectiveColorId)) {
-        const hasSelectedAccounts = Array.isArray(readySelectedAccountIds) && readySelectedAccountIds.length > 0;
-        if (!hasSelectedAccounts) { try { showToast(t('messages.selectAccountFirst'), 'error', 2000); } catch { } return false; }
-        const remain = getPremiumColorRemainingLimit(effectiveColorId);
-        if (!(remain > 0)) { try { showToast(t('messages.premiumColorLimitReached'), 'error', 2000); } catch { } return false; }
-    }
-    // Store lightweight record; drawing handled by canvas overlay
-    map.set(k, { x, y, el: null, fillEl: null, colorId: effectiveColorId });
-    try { item._lastManualSelected = { x, y }; } catch { }
-    if (pixelSelectedList) pixelSelectedList.hidden = false;
-    drawSelectionOverlay();
-    try { refreshPaletteTooltips(); } catch { }
-    return true;
-}
-function removePixelSelection(item, x, y) {
-    const map = getSelectedMap(item); if (!map) return false;
-    const k = keyFor(x, y); const rec = map.get(k); if (!rec) return false;
-    // Remove from canvas overlay by redrawing without this record
-    map.delete(k);
-    drawSelectionOverlay();
-    try { refreshPaletteTooltips(); } catch { }
-    return true;
-}
-function clearSelectionsForItem(item) {
-    const map = getSelectedMap(item);
-    if (!map) return;
-    // Canvas overlay redraw will drop visuals
-    map.clear();
-    drawSelectionOverlay();
-    try { item._lastManualSelected = null; } catch { }
-    try { refreshPaletteTooltips(); } catch { }
-}
-function clearAllReadySelections() {
-    try { if (pixelHoverEl) pixelHoverEl.hidden = true; } catch { }
-    try { if (pixelSelectedList) pixelSelectedList.hidden = true; } catch { }
-    for (let i = 0; i < signItems.length; i++) {
-        const it = signItems[i];
-        if (it) clearSelectionsForItem(it);
-    }
-
-    try { if (readyGlobalSelected) readyGlobalSelected.clear(); } catch { }
-    try {
-        if (pixelSelectedList) {
-            while (pixelSelectedList.firstChild) pixelSelectedList.removeChild(pixelSelectedList.firstChild);
-        }
-    } catch { }
-    updatePixelMarkers();
-    drawSelectionOverlay();
-    try { updateReadySelectionLabel(); } catch { }
-    try { updateStartEnabled(); } catch { }
-    try { updateAutoSelectButtonLabel(); } catch { }
-    try { refreshPaletteTooltips(); } catch { }
-}
-function ensureRenderedSelectedForItem(item) {
-    if (!item) return;
-    if (!selectionOverlay || !selectionCtx) return;
-    drawSelectionOverlay();
-}
-function positionSelectedMarkersForItem(item) {
-    if (!item) return;
-    drawSelectionOverlay();
-}
 
 function isReadyOpen() {
     try {
@@ -1100,8 +483,6 @@ function getCompositeColorAtWorld(wx, wy) {
     } catch { }
     return getBasePixelColorAtWorld(wx, wy);
 }
-function logSelectionDetails(item, sx, sy) { }
-
 function worldToScreen(wx, wy) {
     const rect = canvas.getBoundingClientRect();
     return { x: rect.left + state.translateX + wx * state.scale, y: rect.top + state.translateY + wy * state.scale };
@@ -1503,13 +884,13 @@ function updatePixelMarkers() {
         hideEl(pixelHoverEl);
         try { pixelHoverFillEl.hidden = true; } catch { }
         if (pixelSelectedList) pixelSelectedList.hidden = true;
-        drawSelectionOverlay();
+        scheduleOverlayDraw();
         return;
     }
     if (readyGlobalMode) {
 
         // Global selections drawn by overlay
-        drawSelectionOverlay();
+        scheduleOverlayDraw();
 
         try { if (!hideHover) { pixelHoverEl.hidden = false; pixelHoverEl.src = HOVER_ICON_SRC; } else { hideEl(pixelHoverEl); } } catch { }
         try {
@@ -1537,7 +918,7 @@ function updatePixelMarkers() {
     if (!sel || !sel.image || !sel.image.complete) { hideEl(pixelHoverEl); try { pixelHoverFillEl.hidden = true; } catch { }; if (pixelSelectedList) pixelSelectedList.hidden = true; return; }
     ensureRenderedSelectedForItem(sel);
     positionSelectedMarkersForItem(sel);
-    drawSelectionOverlay();
+    scheduleOverlayDraw();
 
     // Global selections drawn by overlay
     if (pixelSelectedList) {
@@ -1634,39 +1015,6 @@ function updateReadyHoverFromEvent(e) {
 }
 
 
-const PALETTE = [
-    { id: 1, rgb: [0, 0, 0] },
-    { id: 2, rgb: [60, 60, 60] },
-    { id: 3, rgb: [120, 120, 120] },
-    { id: 4, rgb: [210, 210, 210] },
-    { id: 5, rgb: [255, 255, 255] },
-    { id: 6, rgb: [96, 0, 24] },
-    { id: 7, rgb: [237, 28, 36] },
-    { id: 8, rgb: [255, 127, 39] },
-    { id: 9, rgb: [246, 170, 9] },
-    { id: 10, rgb: [249, 221, 59] },
-    { id: 11, rgb: [255, 250, 188] },
-    { id: 12, rgb: [14, 185, 104] },
-    { id: 13, rgb: [19, 230, 123] },
-    { id: 14, rgb: [135, 255, 94] },
-    { id: 15, rgb: [12, 129, 110] },
-    { id: 16, rgb: [16, 174, 166] },
-    { id: 17, rgb: [19, 225, 190] },
-    { id: 18, rgb: [40, 80, 158] },
-    { id: 19, rgb: [64, 147, 228] },
-    { id: 20, rgb: [96, 247, 242] },
-    { id: 21, rgb: [107, 80, 246] },
-    { id: 22, rgb: [153, 177, 251] },
-    { id: 23, rgb: [120, 12, 153] },
-    { id: 24, rgb: [170, 56, 185] },
-    { id: 25, rgb: [224, 159, 249] },
-    { id: 26, rgb: [203, 0, 122] },
-    { id: 27, rgb: [236, 31, 128] },
-    { id: 28, rgb: [243, 141, 169] },
-    { id: 29, rgb: [104, 70, 52] },
-    { id: 30, rgb: [149, 104, 42] },
-    { id: 31, rgb: [248, 178, 119] }
-];
 if (!ACTIVE_PALETTE) { ACTIVE_PALETTE = PALETTE.slice(); }
 function setupColorPalette() {
     if (!colorPaletteEl) return;
@@ -1785,7 +1133,6 @@ function updateReadyButtonEnabled() {
         );
     } catch { }
 }
-function openReadyOnPaletteClick() { }
 function updatePaletteSelectionUi() {
     if (!colorPaletteEl) return;
     const swatches = Array.from(colorPaletteEl.querySelectorAll('.palette-swatch'));
@@ -1800,416 +1147,8 @@ function updatePaletteSelectionUi() {
 function squaredDistance(r1, g1, b1, r2, g2, b2) {
     const dr = r1 - r2, dg = g1 - g2, db = b1 - b2; return dr * dr + dg * dg + db * db;
 }
-function srgbToXyz(r, g, b) {
-    let sr = r / 255, sg = g / 255, sb = b / 255;
-    const toLin = (u) => (u <= 0.04045) ? (u / 12.92) : Math.pow((u + 0.055) / 1.055, 2.4);
-    sr = toLin(sr); sg = toLin(sg); sb = toLin(sb);
-    const x = sr * 0.4124 + sg * 0.3576 + sb * 0.1805;
-    const y = sr * 0.2126 + sg * 0.7152 + sb * 0.0722;
-    const z = sr * 0.0193 + sg * 0.1192 + sb * 0.9505;
-    return [x, y, z];
-}
-function xyzToLab(x, y, z) {
-    const xn = 0.95047, yn = 1.0, zn = 1.08883;
-    x /= xn; y /= yn; z /= zn;
-    const f = (t) => t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116);
-    const fx = f(x), fy = f(y), fz = f(z);
-    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
-}
-function srgbToLab(r, g, b) {
-    const xyz = srgbToXyz(r, g, b); return xyzToLab(xyz[0], xyz[1], xyz[2]);
-}
-function srgbToOklab(r, g, b) {
-    let sr = r / 255, sg = g / 255, sb = b / 255;
-    const toLin = (u) => (u <= 0.04045) ? (u / 12.92) : Math.pow((u + 0.055) / 1.055, 2.4);
-    sr = toLin(sr); sg = toLin(sg); sb = toLin(sb);
-    const l = 0.4122214708 * sr + 0.5363325363 * sg + 0.0514459929 * sb;
-    const m = 0.2119034982 * sr + 0.6806995451 * sg + 0.1073969566 * sb;
-    const s = 0.0883024619 * sr + 0.2817188376 * sg + 0.6299787005 * sb;
-    const l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
-    return [
-        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
-    ];
-}
-function ciede2000(lab1, lab2) {
-    const [L1, a1, b1] = lab1; const [L2, a2, b2] = lab2;
-    const avgLp = (L1 + L2) / 2;
-    const C1 = Math.hypot(a1, b1); const C2 = Math.hypot(a2, b2);
-    const avgC = (C1 + C2) / 2;
-    const G = 0.5 * (1 - Math.sqrt(Math.pow(avgC, 7) / (Math.pow(avgC, 7) + Math.pow(25, 7))));
-    const a1p = (1 + G) * a1; const a2p = (1 + G) * a2;
-    const C1p = Math.hypot(a1p, b1); const C2p = Math.hypot(a2p, b2);
-    const avgCp = (C1p + C2p) / 2;
-    let h1p = Math.atan2(b1, a1p); if (h1p < 0) h1p += 2 * Math.PI;
-    let h2p = Math.atan2(b2, a2p); if (h2p < 0) h2p += 2 * Math.PI;
-    let deltahp;
-    const diffh = h2p - h1p;
-    if (isNaN(h1p) || isNaN(h2p)) deltahp = 0;
-    else if (Math.abs(diffh) <= Math.PI) deltahp = diffh;
-    else if (diffh > Math.PI) deltahp = diffh - 2 * Math.PI;
-    else deltahp = diffh + 2 * Math.PI;
-    const deltaLp = L2 - L1;
-    const deltaCp = C2p - C1p;
-    const deltaHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(deltahp / 2);
-    const avgLpMinus50Sq = Math.pow(avgLp - 50, 2);
-    const Sl = 1 + (0.015 * avgLpMinus50Sq) / Math.sqrt(20 + avgLpMinus50Sq);
-    const Sc = 1 + 0.045 * avgCp;
-    const T = 1 - 0.17 * Math.cos((h1p + h2p) / 2 - Math.PI / 6) + 0.24 * Math.cos(2 * (h1p + h2p) / 2) + 0.32 * Math.cos(3 * (h1p + h2p) / 2 + Math.PI / 30) - 0.20 * Math.cos(4 * (h1p + h2p) / 2 - 63 * Math.PI / 180);
-    const Sh = 1 + 0.015 * avgCp * T;
-    const deltaTheta = 30 * Math.PI / 180 * Math.exp(-Math.pow(((h1p + h2p) / 2 - 275 * Math.PI / 180) / (25 * Math.PI / 180), 2));
-    const Rc = 2 * Math.sqrt(Math.pow(avgCp, 7) / (Math.pow(avgCp, 7) + Math.pow(25, 7)));
-    const Rt = -Rc * Math.sin(2 * deltaTheta);
-    return Math.sqrt(Math.pow(deltaLp / Sl, 2) + Math.pow(deltaCp / Sc, 2) + Math.pow(deltaHp / Sh, 2) + Rt * (deltaCp / Sc) * (deltaHp / Sh));
-}
-let PALETTE_LAB = [];
-let PALETTE_OKLAB = [];
-let EXACT_PALETTE_MAP = new Map();
-function recomputePaletteCaches() {
-    try {
-        const arrActive = (ACTIVE_PALETTE && Array.isArray(ACTIVE_PALETTE)) ? ACTIVE_PALETTE : PALETTE;
-        const arrLab = [];
-        const arrOk = [];
-        const m = new Map();
-        for (let i = 0; i < arrActive.length; i++) {
-            const p = arrActive[i];
-            const lab = srgbToLab(p.rgb[0], p.rgb[1], p.rgb[2]);
-            const ok = srgbToOklab(p.rgb[0], p.rgb[1], p.rgb[2]);
-            arrLab.push({ id: p.id, lab, rgb: p.rgb });
-            arrOk.push({ id: p.id, oklab: ok, rgb: p.rgb });
-            m.set(String(p.rgb[0]) + ',' + String(p.rgb[1]) + ',' + String(p.rgb[2]), p.id);
-        }
-        PALETTE_LAB = arrLab;
-        PALETTE_OKLAB = arrOk;
-        EXACT_PALETTE_MAP = m;
-    } catch { }
-}
-try { recomputePaletteCaches(); } catch { }
-function nearestPaletteColor(r, g, b, metric) {
-    const arr = (ACTIVE_PALETTE && Array.isArray(ACTIVE_PALETTE)) ? ACTIVE_PALETTE : PALETTE;
-    if (metric === 'oklab') {
-        const ok = srgbToOklab(r, g, b);
-        let best = arr[0].rgb, bestD = Infinity;
-        for (let i = 0; i < PALETTE_OKLAB.length; i++) {
-            const q = PALETTE_OKLAB[i];
-            const dL = ok[0] - q.oklab[0], dA = ok[1] - q.oklab[1], dB = ok[2] - q.oklab[2];
-            const d = dL * dL + dA * dA + dB * dB;
-            if (d < bestD) { bestD = d; best = q.rgb; if (d === 0) break; }
-        }
-        return best;
-    } else if (metric === 'lab' || metric === 'ciede2000') {
-        const lab = srgbToLab(r, g, b);
-        let best = arr[0].rgb, bestD = Infinity;
-        for (let i = 0; i < PALETTE_LAB.length; i++) {
-            const q = PALETTE_LAB[i];
-            let d;
-            if (metric === 'lab') {
-                const dL = lab[0] - q.lab[0], dA = lab[1] - q.lab[1], dB = lab[2] - q.lab[2];
-                d = dL * dL + dA * dA + dB * dB;
-            } else {
-                d = ciede2000(lab, q.lab);
-            }
-            if (d < bestD) { bestD = d; best = q.rgb; if (d === 0) break; }
-        }
-        return best;
-    } else {
-        let best = arr[0].rgb, bestD = Infinity;
-        for (let i = 0; i < arr.length; i++) {
-            const p = arr[i].rgb;
-            const d = squaredDistance(r, g, b, p[0], p[1], p[2]);
-            if (d < bestD) { bestD = d; best = p; if (d === 0) break; }
-        }
-        return best;
-    }
-}
-function nearestPaletteId(r, g, b, metric) {
-    const arr = (ACTIVE_PALETTE && Array.isArray(ACTIVE_PALETTE)) ? ACTIVE_PALETTE : PALETTE;
-    if (metric === 'oklab') {
-        const ok = srgbToOklab(r, g, b);
-        let bestId = arr[0].id, bestD = Infinity;
-        for (let i = 0; i < PALETTE_OKLAB.length; i++) {
-            const q = PALETTE_OKLAB[i];
-            const dL = ok[0] - q.oklab[0], dA = ok[1] - q.oklab[1], dB = ok[2] - q.oklab[2];
-            const d = dL * dL + dA * dA + dB * dB;
-            if (d < bestD) { bestD = d; bestId = q.id; if (d === 0) break; }
-        }
-        return bestId;
-    } else if (metric === 'lab' || metric === 'ciede2000') {
-        const lab = srgbToLab(r, g, b);
-        let bestId = arr[0].id, bestD = Infinity;
-        for (let i = 0; i < PALETTE_LAB.length; i++) {
-            const q = PALETTE_LAB[i];
-            let d;
-            if (metric === 'lab') {
-                const dL = lab[0] - q.lab[0], dA = lab[1] - q.lab[1], dB = lab[2] - q.lab[2];
-                d = dL * dL + dA * dA + dB * dB;
-            } else {
-                d = ciede2000(lab, q.lab);
-            }
-            if (d < bestD) { bestD = d; bestId = q.id; if (d === 0) break; }
-        }
-        return bestId;
-    } else {
-        let bestId = arr[0].id, bestD = Infinity;
-        for (let i = 0; i < arr.length; i++) {
-            const p = arr[i].rgb;
-            const d = squaredDistance(r, g, b, p[0], p[1], p[2]);
-            if (d < bestD) { bestD = d; bestId = arr[i].id; if (d === 0) break; }
-        }
-        return bestId;
-    }
-}
-function rgbToPaletteId(r, g, b) {
-    const key = String(r) + ',' + String(g) + ',' + String(b);
-    if (EXACT_PALETTE_MAP.has(key)) return EXACT_PALETTE_MAP.get(key);
-    const metric = imgColorMetricSelect ? imgColorMetricSelect.value : 'oklab';
-    return nearestPaletteId(r, g, b, metric);
-}
-function quantizeImageToPalette(image) {
-    const w = image.naturalWidth | 0, h = image.naturalHeight | 0;
-    const off = document.createElement('canvas'); off.width = w; off.height = h;
-    const octx = off.getContext('2d', { willReadFrequently: true });
-    octx.imageSmoothingEnabled = false;
-    octx.drawImage(image, 0, 0);
-    const id = octx.getImageData(0, 0, w, h);
-    const data = id.data;
-    const alphaTh = imgAlphaInput ? parseInt(imgAlphaInput.value || '0', 10) : 0;
-    for (let i = 0; i < data.length; i += 4) {
-        data[i + 3] = (data[i + 3] <= alphaTh) ? 0 : 255;
-    }
-    const metric = imgColorMetricSelect ? imgColorMetricSelect.value : 'oklab';
-    if (imgDitherEnabled) {
-        const w2 = w + 2;
-        const errCurrR = new Float32Array(w2), errCurrG = new Float32Array(w2), errCurrB = new Float32Array(w2);
-        const errNextR = new Float32Array(w2), errNextG = new Float32Array(w2), errNextB = new Float32Array(w2);
-        for (let y = 0; y < h; y++) {
-            const leftToRight = (y % 2 === 0);
-            for (let i = 0; i < w2; i++) { errCurrR[i] += 0; errCurrG[i] += 0; errCurrB[i] += 0; }
-            if (leftToRight) {
-                for (let x = 0; x < w; x++) {
-                    const idx = (y * w + x) * 4;
-                    if (data[idx + 3] === 0) continue;
-                    let r = data[idx] + errCurrR[x + 1];
-                    let g = data[idx + 1] + errCurrG[x + 1];
-                    let b = data[idx + 2] + errCurrB[x + 1];
-                    r = r < 0 ? 0 : (r > 255 ? 255 : r);
-                    g = g < 0 ? 0 : (g > 255 ? 255 : g);
-                    b = b < 0 ? 0 : (b > 255 ? 255 : b);
-                    const nn = nearestPaletteColor(r, g, b, metric);
-                    data[idx] = nn[0]; data[idx + 1] = nn[1]; data[idx + 2] = nn[2];
-                    const er = r - nn[0];
-                    const eg = g - nn[1];
-                    const eb = b - nn[2];
-                    errCurrR[x + 2] += er * (7 / 16); errCurrG[x + 2] += eg * (7 / 16); errCurrB[x + 2] += eb * (7 / 16);
-                    errNextR[x] += er * (3 / 16); errNextG[x] += eg * (3 / 16); errNextB[x] += eb * (3 / 16);
-                    errNextR[x + 1] += er * (5 / 16); errNextG[x + 1] += eg * (5 / 16); errNextB[x + 1] += eb * (5 / 16);
-                    errNextR[x + 2] += er * (1 / 16); errNextG[x + 2] += eg * (1 / 16); errNextB[x + 2] += eb * (1 / 16);
-                }
-            } else {
-                for (let x = w - 1; x >= 0; x--) {
-                    const idx = (y * w + x) * 4;
-                    if (data[idx + 3] === 0) continue;
-                    let r = data[idx] + errCurrR[x + 1];
-                    let g = data[idx + 1] + errCurrG[x + 1];
-                    let b = data[idx + 2] + errCurrB[x + 1];
-                    r = r < 0 ? 0 : (r > 255 ? 255 : r);
-                    g = g < 0 ? 0 : (g > 255 ? 255 : g);
-                    b = b < 0 ? 0 : (b > 255 ? 255 : b);
-                    const nn = nearestPaletteColor(r, g, b, metric);
-                    data[idx] = nn[0]; data[idx + 1] = nn[1]; data[idx + 2] = nn[2];
-                    const er = r - nn[0];
-                    const eg = g - nn[1];
-                    const eb = b - nn[2];
-                    errCurrR[x] += er * (7 / 16); errCurrG[x] += eg * (7 / 16); errCurrB[x] += eb * (7 / 16);
-                    errNextR[x + 2] += er * (3 / 16); errNextG[x + 2] += eg * (3 / 16); errNextB[x + 2] += eb * (3 / 16);
-                    errNextR[x + 1] += er * (5 / 16); errNextG[x + 1] += eg * (5 / 16); errNextB[x + 1] += eb * (5 / 16);
-                    errNextR[x] += er * (1 / 16); errNextG[x] += eg * (1 / 16); errNextB[x] += eb * (1 / 16);
-                }
-            }
-            for (let i = 0; i < w2; i++) { errCurrR[i] = errNextR[i]; errCurrG[i] = errNextG[i]; errCurrB[i] = errNextB[i]; errNextR[i] = 0; errNextG[i] = 0; errNextB[i] = 0; }
-        }
-    } else {
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const idx = (y * w + x) * 4;
-                if (data[idx + 3] === 0) continue;
-                const nn = nearestPaletteColor(data[idx], data[idx + 1], data[idx + 2], metric);
-                data[idx] = nn[0]; data[idx + 1] = nn[1]; data[idx + 2] = nn[2];
-            }
-        }
-    }
-    octx.putImageData(id, 0, 0);
-    return new Promise((resolve) => { off.toBlob((blob) => resolve(blob), 'image/png'); });
-}
 
 
-function countNonTransparentPixels(image) {
-    try {
-        const w = image.naturalWidth | 0, h = image.naturalHeight | 0;
-        if (!w || !h) return 0;
-        const off = document.createElement('canvas'); off.width = w; off.height = h;
-        const octx = off.getContext('2d', { willReadFrequently: true });
-        octx.drawImage(image, 0, 0);
-        const id = octx.getImageData(0, 0, w, h);
-        const data = id.data;
-        let cnt = 0;
-        for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) cnt++; }
-        return cnt;
-    } catch { return 0; }
-}
-
-
-const PIXEL_FONT_5x7 = {
-    '0': [
-        '01110', '10001', '10011', '10101', '11001', '10001', '01110'
-    ],
-    '1': [
-        '00100', '01100', '00100', '00100', '00100', '00100', '01110'
-    ],
-    '2': [
-        '01110', '10001', '00001', '00010', '00100', '01000', '11111'
-    ],
-    '3': [
-        '11110', '00001', '00001', '01110', '00001', '00001', '11110'
-    ],
-    '4': [
-        '00010', '00110', '01010', '10010', '11111', '00010', '00010'
-    ],
-    '5': [
-        '11111', '10000', '11110', '00001', '00001', '10001', '01110'
-    ],
-    '6': [
-        '00110', '01000', '10000', '11110', '10001', '10001', '01110'
-    ],
-    '7': [
-        '11111', '00001', '00010', '00100', '01000', '01000', '01000'
-    ],
-    '8': [
-        '01110', '10001', '10001', '01110', '10001', '10001', '01110'
-    ],
-    '9': [
-        '01110', '10001', '10001', '01111', '00001', '00010', '11100'
-    ],
-    'p': [
-        '11110', '10001', '10001', '11110', '10000', '10000', '10000'
-    ],
-    'i': [
-        '00100', '00000', '01100', '00100', '00100', '00100', '01110'
-    ],
-    'x': [
-        '10001', '01010', '00100', '01010', '10001', '00000', '00000'
-    ],
-    'e': [
-        '01110', '10000', '11110', '10000', '10000', '10001', '01110'
-    ],
-    'l': [
-        '10000', '10000', '10000', '10000', '10000', '10000', '11111'
-    ],
-    ' ': [
-        '00000', '00000', '00000', '00000', '00000', '00000', '00000'
-    ],
-    '/': [
-        '00001', '00010', '00100', '01000', '10000', '00000', '00000'
-    ],
-    '-': [
-        '00000', '00000', '00000', '11111', '00000', '00000', '00000'
-    ],
-    '.': [
-        '00000', '00000', '00000', '00000', '00000', '00100', '00100'
-    ],
-    '%': [
-        '10001', '00010', '00100', '01000', '10000', '10001', '00000'
-    ]
-};
-
-function measurePixelText(text, pixelSize) {
-    const glyphW = 5, glyphH = 7, space = 1;
-    const cellsW = Math.max(0, text.length * (glyphW + space) - space);
-    return { width: cellsW * pixelSize, height: glyphH * pixelSize };
-}
-
-function drawPixelText(ctx, text, x, y, pixelSize, color) {
-    const glyphW = 5, glyphH = 7, space = 1;
-    let cx = x;
-    ctx.save();
-    ctx.fillStyle = color || '#fff';
-    for (let k = 0; k < text.length; k++) {
-        const ch = text[k].toLowerCase();
-        const g = PIXEL_FONT_5x7[ch] || PIXEL_FONT_5x7[' '];
-        for (let r = 0; r < glyphH; r++) {
-            const row = g[r] || '00000';
-            for (let c = 0; c < glyphW; c++) {
-                if (row[c] === '1') ctx.fillRect(cx + c * pixelSize, y + r * pixelSize, pixelSize, pixelSize);
-            }
-        }
-        cx += (glyphW + space) * pixelSize;
-    }
-    ctx.restore();
-}
-
-
-const PIX_ICON_LOCK_CLOSED = [
-    '0011100',
-    '0100010',
-    '0100010',
-    '0111110',
-    '0110110',
-    '0110110',
-    '0111110'
-];
-const PIX_ICON_LOCK_OPEN = [
-    '0011000',
-    '0100000',
-    '0100000',
-    '0111110',
-    '0110110',
-    '0110110',
-    '0111110'
-];
-const PIX_ICON_X = [
-    '1000001',
-    '0100010',
-    '0010100',
-    '0001000',
-    '0010100',
-    '0100010',
-    '1000001'
-];
-const PIX_ICON_RESIZE = [
-    '0000001',
-    '0000011',
-    '0000111',
-    '0001111',
-    '0011111',
-    '0111111',
-    '1111111'
-];
-function drawPixelIcon(ctx, pattern, x, y, pixelSize, color) {
-    ctx.save();
-    ctx.fillStyle = color || '#ffffff';
-    const h = pattern.length | 0;
-    const w = h ? pattern[0].length | 0 : 0;
-    for (let r = 0; r < h; r++) {
-        const row = pattern[r] || '';
-        for (let c = 0; c < w; c++) {
-            if (row[c] === '1') ctx.fillRect(x + c * pixelSize, y + r * pixelSize, pixelSize, pixelSize);
-        }
-    }
-    ctx.restore();
-}
-function measurePixelIcon(pattern, pixelSize) {
-    const h = pattern.length | 0;
-    const w = h ? pattern[0].length | 0 : 0;
-    return { width: w * pixelSize, height: h * pixelSize };
-}
-
-function getContentCenterPx() {
-    const c = canvas.getBoundingClientRect();
-    const s = sidebar && sidebar.getBoundingClientRect ? sidebar.getBoundingClientRect() : null;
-    const regionLeft = s ? Math.max(0, Math.min(c.width, s.right - c.left)) : 0;
-    return { x: regionLeft + (c.width - regionLeft) / 2, y: c.height / 2 };
-}
 
 let img = null;
 let baseImageData = null;
@@ -2236,7 +1175,6 @@ let hoveredGridCell = null; // { row: -1|0|1, col: -1|0|1 }
 const neighborOverlays = new Map();
 let overlayVersion = 0;
 // Allow dragging images beyond the 3x3 grid; outside parts stay clipped
-const ALLOW_DRAG_BEYOND_NINE = true;
 
 function resizeCanvasToDisplaySize() {
     const dpr = window.devicePixelRatio || 1;
@@ -2558,7 +1496,7 @@ function handleGridLockClick() {
         imgEl.onload = () => {
             neighborOverlays.set(key, { image: imgEl, col, row, area: newArea, no: newNo });
             overlayVersion++;
-            render();
+            scheduleRender();
             try { saveOverlaysToStorage(); } catch { }
         };
         imgEl.onerror = () => { };
@@ -2581,7 +1519,7 @@ function ensureNeighborOverlay(col, row) {
         imgEl.onload = () => {
             try { neighborOverlays.set(key, { image: imgEl, col, row, area: newArea, no: newNo }); } catch { }
             overlayVersion++;
-            render();
+            scheduleRender();
             try { saveOverlaysToStorage(); } catch { }
         };
         imgEl.onerror = () => { };
@@ -2607,7 +1545,7 @@ function ensureNeighborOverlayAsync(col, row) {
                 try { neighborOverlays.set(key, { image: imgEl, col, row, area: newArea, no: newNo }); } catch { }
                 overlayVersion++;
                 try { saveOverlaysToStorage(); } catch { }
-                render();
+                scheduleRender();
                 resolve(true);
             };
             imgEl.onerror = () => resolve(false);
@@ -2688,7 +1626,7 @@ function restoreOverlaysFromStorage() {
                 imgEl.onload = () => {
                     neighborOverlays.set(key, { image: imgEl, col: e.col | 0, row: e.row | 0, area: Number(e.area || 0), no: Number(e.no || 0) });
                     overlayVersion++;
-                    render();
+                    scheduleRender();
                 };
                 imgEl.onerror = () => { };
                 imgEl.src = buildUrl(e.area, e.no) + '?t=' + Date.now();
@@ -2705,7 +1643,7 @@ function fitToView() {
     state.scale = scaleToFit;
     state.translateX = (vw - img.width * state.scale) / 2;
     state.translateY = (vh - img.height * state.scale) / 2;
-    render();
+    scheduleRender();
 }
 
 async function reloadCurrentBackground() {
@@ -2737,7 +1675,7 @@ async function reloadCurrentBackground() {
                                 if (neighborOverlays && neighborOverlays.size > 0) { neighborOverlays.clear(); overlayVersion++; hoveredGridCell = null; }
                             }
                         } catch { }
-                        render();
+                        scheduleRender();
                         updatePixelMarkers();
                         try { restoreOverlaysFromStorage(); } catch { }
                         try {
@@ -2758,7 +1696,7 @@ async function reloadCurrentBackground() {
                 });
             }
         }
-        // Si no hay datos guardados, carga desde los inputs
+        // If no saved data, load from inputs
         const area = (areaInput && areaInput.value) ? String(areaInput.value).trim() : '';
         const no = (noInput && noInput.value) ? String(noInput.value).trim() : '';
         if (!area || !no) return false;
@@ -2783,7 +1721,7 @@ async function reloadCurrentBackground() {
                         if (neighborOverlays && neighborOverlays.size > 0) { neighborOverlays.clear(); overlayVersion++; hoveredGridCell = null; }
                     }
                 } catch { }
-                render();
+                scheduleRender();
                 updatePixelMarkers();
                 try { restoreOverlaysFromStorage(); } catch { }
                 try {
@@ -2854,11 +1792,11 @@ function loadImage(area, no, preserveView = false) {
             state.scale = prevScale;
             state.translateX = prevTx;
             state.translateY = prevTy;
-            render();
+            scheduleRender();
             try { restoreOverlaysFromStorage(); } catch { }
         } else if (hasSavedView()) {
             // If saved view exists but this is a manual fetch (preserveView=false), do not restore overlays
-            render();
+            scheduleRender();
             updatePixelMarkers();
         } else {
             fitToView();
@@ -2875,7 +1813,7 @@ function loadImage(area, no, preserveView = false) {
                 const cy = (img.height | 0) / 2;
                 state.translateX = centerPx.x - cx * newScale;
                 state.translateY = centerPx.y - cy * newScale;
-                render();
+                scheduleRender();
             }
         } catch { }
         try {
@@ -2974,13 +1912,13 @@ canvas.addEventListener('mousedown', (e) => {
                         } catch { }
                         localStorage.setItem(mapKey, JSON.stringify(locks));
                     } catch { }
-                    render();
+                    scheduleRender();
                     return;
                 }
                 if (rDel && worldX >= rDel.x && worldX <= rDel.x + rDel.w && worldY >= rDel.y && worldY <= rDel.y + rDel.h) {
 
                     deleteItem(it);
-                    render();
+                    scheduleRender();
                     return;
                 }
             }
@@ -3001,7 +1939,7 @@ canvas.addEventListener('mousedown', (e) => {
             signWorldOffsetX = worldX - (it.worldX || 0);
             signWorldOffsetY = worldY - (it.worldY || 0);
         }
-        render();
+        scheduleRender();
         if (isReadyOpen()) {
 
             updateReadyHoverFromEvent(e);
@@ -3025,7 +1963,7 @@ canvas.addEventListener('mousedown', (e) => {
         state.lastX = e.clientX;
         state.lastY = e.clientY;
         document.body.classList.add('dragging');
-        render();
+        scheduleRender();
         updatePixelMarkers();
     }
 });
@@ -3056,7 +1994,7 @@ window.addEventListener('mousemove', (e) => {
         const newH = Math.max(1, resizeOrigH + Math.round(worldY - resizeStartY));
         resizingItem.displayWidth = newW;
         resizingItem.displayHeight = newH;
-        render();
+        scheduleRender();
         return;
     }
     if (state.dragging) {
@@ -3093,7 +2031,7 @@ window.addEventListener('mousemove', (e) => {
             state.translateX = nx;
             state.translateY = ny;
         } catch { state.translateX += dx; state.translateY += dy; }
-        render();
+        scheduleRender();
         updatePixelMarkers();
 
         const rect = canvas.getBoundingClientRect();
@@ -3161,7 +2099,7 @@ window.addEventListener('mousemove', (e) => {
         if (sel.pixelCount == null) {
             try { sel.pixelCount = countNonTransparentPixels(sel.image); } catch { }
         }
-        render();
+        scheduleRender();
         updatePixelMarkers();
         if (isReadyOpen()) { try { updateReadySelectionLabel(); } catch { } }
         try { saveImagesToStorage(); } catch { }
@@ -3216,7 +2154,7 @@ window.addEventListener('mouseup', (e) => {
                         if (pixelSelectedList) pixelSelectedList.hidden = false;
                         try { updateReadySelectionLabel(); updateStartEnabled(); } catch { }
                         try { refreshPaletteTooltips(); } catch { }
-                        drawSelectionOverlay();
+                        scheduleOverlayDraw();
                     }
                 }
             } else {
@@ -3259,7 +2197,7 @@ window.addEventListener('mouseup', (e) => {
                         readyGlobalSelected.delete(key);
                         try { updateReadySelectionLabel(); updateStartEnabled(); } catch { }
                         try { refreshPaletteTooltips(); } catch { }
-                        drawSelectionOverlay();
+                        scheduleOverlayDraw();
                     }
                 }
             } else {
@@ -3361,13 +2299,13 @@ canvas.addEventListener('wheel', (e) => {
     state.translateX = nx;
     state.translateY = ny;
     state.scale = newScale;
-    render();
+    scheduleRender();
     updatePixelMarkers();
     zoomingTimeout = setTimeout(() => { state.zooming = false; try { updatePixelMarkers(); } catch { } }, 50);
 }, { passive: false });
 
 window.addEventListener('resize', () => {
-    render();
+    scheduleRender();
     updatePixelMarkers();
 });
 
@@ -3381,8 +2319,6 @@ setInterval(() => {
 }, 1000);
 
 
-function updatePixelPowerPosition() { }
-
 document.getElementById('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const area = areaInput.value.trim();
@@ -3393,389 +2329,23 @@ document.getElementById('form').addEventListener('submit', async (e) => {
     try { localStorage.setItem('view.worldX', String(Number(area))); localStorage.setItem('view.worldY', String(Number(no))); } catch { }
 });
 
-function updateCounter() {
-    const total = signItems.length;
-    const selected = selectedIndex >= 0 ? (selectedIndex + 1) : 0;
-    counter.textContent = String(selected) + ' / ' + String(total);
-    try {
-        const btn = document.getElementById('btn-ready');
-        if (btn) btn.disabled = !(
-            (selectedIndex >= 0 && selectedIndex < signItems.length) ||
-            (selectedOverrideColorId != null)
-        );
-    } catch { }
-}
 
-function updateThumbSelection() {
-    signItems.forEach((it, i) => {
-        if (it.el) it.el.classList.toggle('selected', i === selectedIndex);
-    });
-    try { localStorage.setItem('selected.index', String(selectedIndex)); } catch { }
-    try {
-        const btn = document.getElementById('btn-ready');
-        if (btn) btn.disabled = !(
-            (selectedIndex >= 0 && selectedIndex < signItems.length) ||
-            (selectedOverrideColorId != null)
-        );
-    } catch { }
 
-    try {
-        if (!(selectedIndex >= 0 && selectedIndex < signItems.length)) {
-            const rp = document.getElementById('ready-popup');
-            if (rp) rp.hidden = true;
-            try { if (movementPopup) movementPopup.hidden = true; } catch { }
-        }
-    } catch { }
-    if (isReadyOpen()) { try { updateReadySelectionLabel(); } catch { } }
-    try { updateMovementButtonEnabled(); } catch { }
-    try {
-        const it = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
-        if (movementBtn && movementPopup) {
-            const canOpen = !!(it && it.image && it.image.complete && !(it.locked || it.lockedByReady));
-            if (canOpen) {
-                if (window._mvOpenTmo) { try { clearTimeout(window._mvOpenTmo); } catch { } }
-                window._mvOpenTmo = setTimeout(() => { if (!readyPopup || readyPopup.hidden) movementPopup.hidden = false; }, 50);
-            }
-        }
-    } catch { }
-}
 
-function updateItemLockUi(item) {
-    if (!item || !item.el) return;
-    item.el.classList.toggle('locked', !!item.locked);
-    const btn = item.el.querySelector('.thumb-action.lock');
-    if (btn) btn.textContent = (item.locked || item.lockedByReady) ? '🔒' : '🔓';
-    try { updateMovementButtonEnabled(); } catch { }
-}
 
-function deleteItem(item) {
-    const idx = signItems.indexOf(item);
-    if (idx === -1) return;
-    if (readyLockedItem === item) {
-        try { readyLockedItem.lockedByReady = false; } catch { }
-        readyLockedItem = null;
-    }
-    if (item.el && item.el.parentNode) {
-        try { item.el.parentNode.removeChild(item.el); } catch { }
-    }
-    try { if (item.url) URL.revokeObjectURL(item.url); } catch { }
-    signItems.splice(idx, 1);
-    if (selectedIndex === idx) selectedIndex = Math.min(idx, signItems.length - 1);
-    else if (selectedIndex > idx) selectedIndex -= 1;
-    if (signItems.length === 0) selectedIndex = -1;
-    updateThumbSelection();
-    updateCounter();
-    render();
-    try { updateMovementButtonEnabled(); } catch { }
-    try { saveImagesToStorage(); } catch { }
-}
 
-function applyResize(item, w, h) {
-    if (!item || !item.image) return;
-    if (!item.originalImage) item.originalImage = item.image;
-    const src = item.originalImage;
-    const off = document.createElement('canvas');
-    off.width = w; off.height = h;
-    const octx = off.getContext('2d', { willReadFrequently: true });
-    octx.imageSmoothingEnabled = false;
-    octx.drawImage(src, 0, 0, src.naturalWidth || src.width, src.naturalHeight || src.height, 0, 0, w, h);
-    const id = octx.getImageData(0, 0, w, h);
-    item._imageData = id;
-    let cnt = 0;
-    for (let i = 3; i < id.data.length; i += 4) { if (id.data[i] !== 0) cnt++; }
-    item.pixelCount = cnt;
-    off.naturalWidth = w; off.naturalHeight = h; off.complete = true;
-    const dataUrl = off.toDataURL('image/png');
-    item.image = off;
-    item.url = dataUrl;
-    item.dataUrl = dataUrl;
-    if (item.el) {
-        const im = item.el.querySelector('img');
-        if (im) im.src = dataUrl;
-    }
-    render();
-    updateCounter();
-    try { saveImagesToStorage(); } catch { }
-}
 
-function zoomToSign(item) {
-    if (!item || !item.image) return;
-    const vw = canvas.clientWidth;
-    const vh = canvas.clientHeight;
-    const sw = item.image.naturalWidth || 1;
-    const sh = item.image.naturalHeight || 1;
-    const scaleToFit = Math.min(vw / sw, vh / sh);
-    const marginFactor = 0.85;
-    const newScale = Math.min(state.maxScale, Math.max(state.minScale, scaleToFit * marginFactor));
-    const centerX = (item.worldX || 0) + sw / 2;
-    const centerY = (item.worldY || 0) + sh / 2;
-    const centerPx = getContentCenterPx();
-    state.scale = newScale;
-    state.translateX = centerPx.x - centerX * newScale;
-    state.translateY = centerPx.y - centerY * newScale;
-    render();
-    try {
-        localStorage.setItem('view.translateX', String(state.translateX));
-        localStorage.setItem('view.translateY', String(state.translateY));
-        localStorage.setItem('view.scale', String(state.scale));
-        // Update world X/Y inputs to the tile that contains the image center
-        if (areaInput && noInput && img) {
-            const w = img.width | 0, h = img.height | 0;
-            const cx = Math.floor(centerX);
-            const cy = Math.floor(centerY);
-            const base = getCurrentTileCoords();
-            const col = Math.floor(cx / Math.max(1, w));
-            const row = Math.floor(cy / Math.max(1, h));
-            const areaX = Number(base.x || 0) + col;
-            const areaY = Number(base.y || 0) + row;
-            areaInput.value = String(areaX);
-            noInput.value = String(areaY);
-            try {
-                localStorage.setItem('areaCode', String(areaX));
-                localStorage.setItem('areaNo', String(areaY));
-                // Keep backward compatibility with legacy keys
-                localStorage.setItem('area code', String(areaX));
-                localStorage.setItem('no', String(areaY));
-            } catch { }
-        }
-    } catch { }
-}
 
-function addThumbForItem(item, index) {
-    const div = document.createElement('div');
-    div.className = 'thumb-item';
-    const im = document.createElement('img');
-    im.src = item.url;
-    im.alt = item.name || (t('thumb.imageAlt', { n: (index + 1) }));
-    div.appendChild(im);
 
-    const actions = document.createElement('div');
-    actions.className = 'thumb-actions';
-    const btnLock = document.createElement('button');
-    btnLock.className = 'thumb-action lock';
-    btnLock.title = t('thumb.lock');
-    btnLock.textContent = item.locked ? '🔒' : '🔓';
-    btnLock.addEventListener('click', (ev) => {
-        ev.stopPropagation();
 
-        item.locked = !item.locked;
-        updateItemLockUi(item);
-        try {
-            const mapKey = 'locks.map';
-            let locks = {};
-            try { locks = JSON.parse(localStorage.getItem(mapKey) || '{}'); } catch { }
-            locks[item.url] = !!item.locked;
-            try {
-                const altKey = (item.url && item.url.startsWith('data:')) ? item.url : (localStorage.getItem('last.image.dataUrl') || null);
-                if (altKey) locks[altKey] = !!item.locked;
-            } catch { }
-            localStorage.setItem(mapKey, JSON.stringify(locks));
-        } catch { }
-        try { saveImagesToStorage(); } catch { }
-    });
-    const btnDel = document.createElement('button');
-    btnDel.className = 'thumb-action del';
-    btnDel.title = t('buttons.delete');
-    btnDel.textContent = '🗑️';
-    btnDel.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        deleteItem(item);
-        try { saveImagesToStorage(); } catch { }
-    });
-    actions.appendChild(btnLock);
-    actions.appendChild(btnDel);
-    div.appendChild(actions);
 
-    div.addEventListener('click', () => {
-        selectSign(signItems.indexOf(item), true);
-    });
-    item.el = div;
-    if (item.lockedByReady == null) item.lockedByReady = false;
-    thumbList.appendChild(div);
-    updateItemLockUi(item);
-    updateThumbSelection();
-    updateCounter();
-    try {
-        // Persist current item's position when it is added
-        localStorage.setItem('last.image.worldX', String(item.worldX || 0));
-        localStorage.setItem('last.image.worldY', String(item.worldY || 0));
-        // Persist lock state per image
-        const mapKey = 'locks.map';
-        let locks = {};
-        try { locks = JSON.parse(localStorage.getItem(mapKey) || '{}'); } catch { }
-        locks[item.url] = !!item.locked;
-        try {
-            const altKey = (item.url && item.url.startsWith('data:')) ? item.url : (localStorage.getItem('last.image.dataUrl') || null);
-            if (altKey) locks[altKey] = !!item.locked;
-        } catch { }
-        localStorage.setItem(mapKey, JSON.stringify(locks));
-    } catch { }
-    try { saveImagesToStorage(); } catch { }
-}
 
-function ensureDataUrlForItem(item) {
-    try {
-        if (!item) return null;
-        if (item.dataUrl && typeof item.dataUrl === 'string' && item.dataUrl.startsWith('data:')) return item.dataUrl;
-        const src = String(item.url || '');
-        if (src.startsWith('data:')) { item.dataUrl = src; return src; }
-        if (item.image && item.image.naturalWidth && item.image.naturalHeight) {
-            const off = document.createElement('canvas');
-            off.width = item.image.naturalWidth; off.height = item.image.naturalHeight;
-            const octx = off.getContext('2d', { willReadFrequently: true });
-            octx.imageSmoothingEnabled = false;
-            octx.drawImage(item.image, 0, 0);
-            const durl = off.toDataURL('image/png');
-            item.dataUrl = durl;
-            return durl;
-        }
-    } catch { }
-    return null;
-}
-function saveImagesToStorage() {
-    try {
-        const list = [];
-        for (let i = 0; i < signItems.length; i++) {
-            const it = signItems[i];
-            if (!it || !it.image) continue;
-            const durl = ensureDataUrlForItem(it);
-            if (!durl) continue;
-            list.push({ name: it.name || 'image.png', dataUrl: durl, worldX: Math.floor(Number(it.worldX || 0)), worldY: Math.floor(Number(it.worldY || 0)), locked: !!it.locked });
-        }
-        localStorage.setItem('images.list', JSON.stringify(list));
-        // If all images have been removed, also clear legacy keys to prevent fallback restore on refresh
-        if (list.length === 0) {
-            try { localStorage.removeItem('last.image.url'); } catch { }
-            try { localStorage.removeItem('last.image.name'); } catch { }
-            try { localStorage.removeItem('last.image.dataUrl'); } catch { }
-            try { localStorage.removeItem('last.image.worldX'); } catch { }
-            try { localStorage.removeItem('last.image.worldY'); } catch { }
-            try { localStorage.removeItem('selected.index'); } catch { }
-        }
-    } catch { }
-}
-function restoreImagesFromStorage() {
-    try {
-        let list = [];
-        try { list = JSON.parse(localStorage.getItem('images.list') || '[]'); } catch { }
-        if (Array.isArray(list) && list.length > 0) {
-            const savedSelRaw = parseInt(localStorage.getItem('selected.index') || '', 10);
-            const savedSel = Number.isFinite(savedSelRaw) ? savedSelRaw : -1;
-            for (let i = 0; i < list.length; i++) {
-                const entry = list[i];
-                if (!entry || !entry.dataUrl) continue;
-                try {
-                    const imgEl = new Image();
-                    imgEl.onload = () => {
-                        const item = { url: entry.dataUrl, dataUrl: entry.dataUrl, name: entry.name || 'image.png', image: imgEl, originalImage: imgEl, worldX: Number(entry.worldX || 0), worldY: Number(entry.worldY || 0), el: null, locked: !!entry.locked, pixelCount: countNonTransparentPixels(imgEl) };
-                        signItems.push(item);
-                        addThumbForItem(item, signItems.length - 1);
-                        updateCounter();
-                        render();
-                        try { updatePixelMarkers(); } catch { }
-                    };
-                    imgEl.src = entry.dataUrl;
-                } catch { }
-            }
-            setTimeout(() => {
-                const idx = (savedSel >= 0 && savedSel < signItems.length) ? savedSel : -1;
-                if (idx >= 0) { try { selectSign(idx, false); } catch { } }
-            }, 100);
-            return;
-        }
-        // Fallback to legacy single-image restore (skip if images.list existed but is empty)
-        const hadList = !!localStorage.getItem('images.list');
-        if (hadList) return;
-        let lastUrl = localStorage.getItem('last.image.url');
-        const lastName = localStorage.getItem('last.image.name') || 'image.png';
-        const dataUrl = localStorage.getItem('last.image.dataUrl');
-        if (!lastUrl && dataUrl) lastUrl = dataUrl;
-        if (lastUrl) {
-            const imgEl = new Image();
-            imgEl.onload = () => {
-                const savedWX = parseFloat(localStorage.getItem('last.image.worldX') || '');
-                const savedWY = parseFloat(localStorage.getItem('last.image.worldY') || '');
-                const item = { url: lastUrl, dataUrl: (lastUrl && lastUrl.startsWith('data:')) ? lastUrl : null, name: lastName, image: imgEl, originalImage: imgEl, worldX: 0, worldY: 0, el: null, locked: false, pixelCount: countNonTransparentPixels(imgEl) };
-                if (!isNaN(savedWX)) item.worldX = savedWX;
-                if (!isNaN(savedWY)) item.worldY = savedWY;
-                try {
-                    const locks = JSON.parse(localStorage.getItem('locks.map') || '{}');
-                    const dataKey = localStorage.getItem('last.image.dataUrl') || null;
-                    if (locks && Object.prototype.hasOwnProperty.call(locks, item.url)) item.locked = !!locks[item.url];
-                    else if (dataKey && Object.prototype.hasOwnProperty.call(locks, dataKey)) item.locked = !!locks[dataKey];
-                } catch { }
-                signItems.push(item);
-                let savedSel = parseInt(localStorage.getItem('selected.index') || '', 10);
-                if (!Number.isFinite(savedSel)) savedSel = -1;
-                selectedIndex = (savedSel >= 0 && savedSel < signItems.length) ? savedSel : -1;
-                addThumbForItem(item, signItems.length - 1);
-                updateCounter();
-                render();
-                try { updatePixelMarkers(); } catch { }
-            };
-            imgEl.src = lastUrl;
-        }
-    } catch { }
-}
 
-function selectSign(index, zoom = true) {
-    if (index < 0 || index >= signItems.length) return;
-    selectedIndex = index;
 
-    try {
-        const rp = document.getElementById('ready-popup');
-        if (rp && !rp.hidden && readyLockedItem && readyLockedItem !== signItems[selectedIndex]) {
-            readyLockedItem.lockedByReady = false;
-            readyLockedItem = null;
-        }
-    } catch { }
-    const item = signItems[selectedIndex];
 
-    try {
-        const rp = document.getElementById('ready-popup');
-        if (rp && !rp.hidden) {
-            readyHoverPixel = { x: null, y: null };
 
-            ensureRenderedSelectedForItem(item);
-            updatePixelMarkers();
-        }
-    } catch { }
-    updateThumbSelection();
-    updateCounter();
-    try {
-        const btn = document.getElementById('btn-ready');
-        if (btn) btn.disabled = !(selectedIndex >= 0 && selectedIndex < signItems.length);
-    } catch { }
-    if (item.image && item.image.complete) {
-        if (zoom) {
-            try {
-                // Ensure the item's tile is loaded; if not, load it then zoom
-                const w = img ? (img.width | 0) : 0;
-                const h = img ? (img.height | 0) : 0;
-                const wx = Math.floor(item.worldX || 0);
-                const wy = Math.floor(item.worldY || 0);
-                const inCurrent3x3 = !!(img && wx >= -w && wx < 2 * w && wy >= -h && wy < 2 * h);
-                if (!inCurrent3x3) {
-                    const areaNow = getCurrentTileCoords();
-                    const areaX = Number(areaNow.x || 0);
-                    const areaY = Number(areaNow.y || 0);
-                    const dx = Math.floor(wx / Math.max(1, w));
-                    const dy = Math.floor(wy / Math.max(1, h));
-                    const targetArea = { x: areaX + dx, y: areaY + dy };
-                    pendingZoomToItem = item;
-                    loadImage(targetArea.x, targetArea.y, true);
-                    // zoom will occur after load completes (see below)
-                } else {
-                    zoomToSign(item);
-                }
-            } catch { zoomToSign(item); }
-        }
-        try { localStorage.setItem('last.image.url', item.url || ''); localStorage.setItem('last.image.name', item.name || 'image.png'); } catch { }
-    } else {
-        pendingZoomToSelected = !!zoom;
-    }
-    render();
-}
+
+
 
 
 function setAccountsActiveTab() {
@@ -3820,73 +2390,7 @@ function openEditAccount(row) {
 
     try { accountSaveBtn.textContent = t('buttons.save'); } catch { }
 }
-const PREMIUM_PALETTE = [
-    { id: 1, label: 'Black', rgb: [0, 0, 0] },
-    { id: 2, label: 'Dark Gray', rgb: [60, 60, 60] },
-    { id: 3, label: 'Gray', rgb: [120, 120, 120] },
-    { id: 32, label: 'Medium Gray', rgb: [170, 170, 170] },
-    { id: 4, label: 'Light Gray', rgb: [210, 210, 210] },
-    { id: 5, label: 'White', rgb: [255, 255, 255] },
-    { id: 6, label: 'Deep Red', rgb: [96, 0, 24] },
-    { id: 33, label: 'Dark Red', rgb: [165, 14, 30] },
-    { id: 7, label: 'Red', rgb: [237, 28, 36] },
-    { id: 34, label: 'Light Red', rgb: [250, 128, 114] },
-    { id: 35, label: 'Dark Orange', rgb: [228, 92, 26] },
-    { id: 8, label: 'Orange', rgb: [255, 127, 39] },
-    { id: 9, label: 'Gold', rgb: [246, 170, 9] },
-    { id: 10, label: 'Yellow', rgb: [249, 221, 59] },
-    { id: 11, label: 'Light Yellow', rgb: [255, 250, 188] },
-    { id: 37, label: 'Dark Goldenrod', rgb: [156, 132, 49] },
-    { id: 38, label: 'Goldenrod', rgb: [197, 173, 49] },
-    { id: 39, label: 'Light Goldenrod', rgb: [232, 212, 95] },
-    { id: 40, label: 'Dark Olive', rgb: [74, 107, 58] },
-    { id: 41, label: 'Olive', rgb: [90, 148, 74] },
-    { id: 42, label: 'Light Olive', rgb: [132, 197, 115] },
-    { id: 12, label: 'Dark Green', rgb: [14, 185, 104] },
-    { id: 13, label: 'Green', rgb: [19, 230, 123] },
-    { id: 14, label: 'Light Green', rgb: [135, 255, 94] },
-    { id: 15, label: 'Dark Teal', rgb: [12, 129, 110] },
-    { id: 16, label: 'Teal', rgb: [16, 174, 166] },
-    { id: 17, label: 'Light Teal', rgb: [19, 225, 190] },
-    { id: 43, label: 'Dark Cyan', rgb: [15, 121, 159] },
-    { id: 20, label: 'Cyan', rgb: [96, 247, 242] },
-    { id: 44, label: 'Light Cyan', rgb: [187, 250, 242] },
-    { id: 18, label: 'Dark Blue', rgb: [40, 80, 158] },
-    { id: 19, label: 'Blue', rgb: [64, 147, 228] },
-    { id: 45, label: 'Light Blue', rgb: [125, 199, 255] },
-    { id: 46, label: 'Dark Indigo', rgb: [77, 49, 184] },
-    { id: 21, label: 'Indigo', rgb: [107, 80, 246] },
-    { id: 22, label: 'Light Indigo', rgb: [153, 177, 251] },
-    { id: 47, label: 'Dark Slate Blue', rgb: [74, 66, 132] },
-    { id: 48, label: 'Slate Blue', rgb: [122, 113, 196] },
-    { id: 49, label: 'Light Slate Blue', rgb: [181, 174, 241] },
-    { id: 23, label: 'Dark Purple', rgb: [120, 12, 153] },
-    { id: 24, label: 'Purple', rgb: [170, 56, 185] },
-    { id: 25, label: 'Light Purple', rgb: [224, 159, 249] },
-    { id: 26, label: 'Dark Pink', rgb: [203, 0, 122] },
-    { id: 27, label: 'Pink', rgb: [236, 31, 128] },
-    { id: 28, label: 'Light Pink', rgb: [243, 141, 169] },
-    { id: 53, label: 'Dark Peach', rgb: [155, 82, 73] },
-    { id: 54, label: 'Peach', rgb: [209, 128, 120] },
-    { id: 55, label: 'Light Peach', rgb: [250, 182, 164] },
-    { id: 29, label: 'Dark Brown', rgb: [104, 70, 52] },
-    { id: 30, label: 'Brown', rgb: [149, 104, 42] },
-    { id: 50, label: 'Light Brown', rgb: [219, 164, 99] },
-    { id: 56, label: 'Dark Tan', rgb: [123, 99, 82] },
-    { id: 57, label: 'Tan', rgb: [156, 132, 107] },
-    { id: 36, label: 'Light Tan', rgb: [214, 181, 148] },
-    { id: 51, label: 'Dark Beige', rgb: [209, 128, 81] },
-    { id: 31, label: 'Beige', rgb: [248, 178, 119] },
-    { id: 52, label: 'Light Beige', rgb: [255, 197, 165] },
-    { id: 61, label: 'Dark Stone', rgb: [109, 100, 63] },
-    { id: 62, label: 'Stone', rgb: [148, 140, 107] },
-    { id: 63, label: 'Light Stone', rgb: [205, 197, 158] },
-    { id: 58, label: 'Dark Slate', rgb: [51, 57, 65] },
-    { id: 59, label: 'Slate', rgb: [109, 117, 141] },
-    { id: 60, label: 'Light Slate', rgb: [179, 185, 209] }
-];
 // Only allow premium colors with id > 32
-const SHOP_PREMIUM_PALETTE = PREMIUM_PALETTE.filter(p => p && typeof p.id === 'number' && p.id > 31);
 
 function computeUnionExtraColorsBitmapAllAccounts() {
     let union = 0;
@@ -4607,49 +3111,6 @@ function renderAccountsTable(rows) {
         }
     } catch { }
 }
-async function loadAccounts() {
-    try {
-        const res = await fetch('/api/accounts');
-        const data = await res.json();
-        if (Array.isArray(data)) renderAccountsTable(data);
-    } catch { }
-}
-async function refreshAccountById(accountId) {
-    try {
-        await fetch('/api/accounts/' + encodeURIComponent(String(accountId)) + '/refresh', { method: 'POST' });
-    } catch { }
-    try { await loadAccounts(); } catch { }
-}
-const BULK_REFRESH_PERIOD_MS = 90 * 1000;
-let lastBulkRefreshAt = 0;
-let bulkRefreshInFlight = false;
-async function refreshAllAccounts() {
-    const now = Date.now();
-    if (bulkRefreshInFlight) return;
-    if (now - lastBulkRefreshAt < BULK_REFRESH_PERIOD_MS - 500) return;
-    bulkRefreshInFlight = true;
-    try {
-        const res = await fetch('/api/accounts');
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-            for (let i = 0; i < rows.length; i++) {
-                const r = rows[i];
-                const id = r && r.id != null ? String(r.id) : '';
-                if (!id) continue;
-                try { await fetch('/api/accounts/' + encodeURIComponent(id) + '/refresh', { method: 'POST' }); } catch { }
-
-                try { await new Promise(resolve => setTimeout(resolve, 1000)); } catch { }
-            }
-        }
-    } catch { }
-    try { await loadAccounts(); } catch { }
-    try { reloadCurrentBackground(); } catch { }
-    finally {
-        lastBulkRefreshAt = Date.now();
-        bulkRefreshInFlight = false;
-    }
-}
-
 if (checkAllBtn) {
     checkAllBtn.addEventListener('click', async () => {
         if (bulkRefreshInFlight) return;
@@ -4850,7 +3311,6 @@ function drawPreview() {
             const errNextR = new Float32Array(w2), errNextG = new Float32Array(w2), errNextB = new Float32Array(w2);
             for (let y = 0; y < targetH; y++) {
                 const leftToRight = (y % 2 === 0);
-                for (let i = 0; i < w2; i++) { errCurrR[i] += 0; errCurrG[i] += 0; errCurrB[i] += 0; }
                 if (leftToRight) {
                     for (let x = 0; x < targetW; x++) {
                         const idx = (y * targetW + x) * 4;
@@ -5110,7 +3570,7 @@ if (imgPreviewApply) imgPreviewApply.addEventListener('click', async () => {
                 try { saveImagesToStorage(); } catch { }
                 // Always focus newly added image at current viewport center
                 pendingZoomToSelected = true;
-                render();
+                scheduleRender();
                 if (pendingZoomToSelected) { pendingZoomToSelected = false; zoomToSign(item); }
                 try { localStorage.setItem('last.image.url', url); localStorage.setItem('last.image.name', item.name || 'image.png'); } catch { }
                 closeImgPreview();
@@ -5492,7 +3952,7 @@ function resetReadyNow() {
     } catch { }
     try { updateAutoSelectButtonLabel(); } catch { }
     try { updatePixelMarkers(); } catch { }
-    render();
+    scheduleRender();
 }
 if (readyBtn && readyPopup) {
     readyBtn.addEventListener('click', async () => {
@@ -5565,7 +4025,7 @@ if (readyBtn && readyPopup) {
                 }
             } catch { }
             try { updateAutoSelectButtonLabel(); } catch { }
-            render();
+            scheduleRender();
         } catch { }
     });
 }
@@ -5653,7 +4113,7 @@ if (autoSelectBtn) {
         }
         updateReadySelectionLabel();
         updatePixelMarkers();
-        render();
+        scheduleRender();
         try { updateStartEnabled(); } catch { }
         try { refreshPaletteTooltips(); } catch { }
     });
@@ -5811,33 +4271,6 @@ function getSelectedAccountsSortedByCapacityDesc() {
     rows.sort((a, b) => (Number(b.pixelCount) || 0) - (Number(a.pixelCount) || 0));
     return rows;
 }
-async function postBatch(area, no, colors, coords, jToken) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PAINT_REQUEST_TIMEOUT_MS);
-    try {
-        const res = await fetch('/api/pixel/' + encodeURIComponent(area) + '/' + encodeURIComponent(no), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ colors, coords, j: jToken }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const text = await res.text();
-        let payload = null;
-        try { payload = JSON.parse(text); } catch { }
-
-        return { ok: res.status < 500 && !!(payload && Object.prototype.hasOwnProperty.call(payload, 'painted')), payload, text, status: res.status };
-    } catch (e) {
-        clearTimeout(timeoutId);
-        const isTimeout = e.name === 'AbortError' || (e.message && e.message.includes('aborted'));
-        return {
-            ok: false,
-            error: isTimeout ? 'Request timed out' : (e && e.message ? e.message : String(e)),
-            status: isTimeout ? 504 : 0
-        };
-    }
-}
-
 function updateStartEnabled() {
     try {
         if (!startBtn) return;
@@ -5848,31 +4281,8 @@ function updateStartEnabled() {
     } catch { }
 }
 
-function groupPixelsByTile(colors, coords) {
-    const tileWidth = currentTileW || (img ? img.width : 0);
-    const tileHeight = currentTileH || (img ? img.height : 0);
-    const cols = currentMosaicCols || 1;
-    const map = new Map();
-    for (let i = 0; i < colors.length; i++) {
-        const wx = coords[i * 2];
-        const wy = coords[i * 2 + 1];
-        const col = Math.floor(wx / tileWidth);
-        const row = Math.floor(wy / tileHeight);
-        const index = row * cols + col;
-        const tile = currentTiles[index] || currentTiles[0] || { x: 0, y: 0 };
-        const localX = wx - col * tileWidth;
-        const localY = wy - row * tileHeight;
-        const key = tile.x + ',' + tile.y;
-        let g = map.get(key);
-        if (!g) {
-            g = { area: tile.x, no: tile.y, coords: [], colors: [] };
-            map.set(key, g);
-        }
-        g.coords.push(localX, localY);
-        g.colors.push(colors[i]);
-    }
-    return Array.from(map.values());
-}
+
+
 
 if (startBtn) {
     startBtn.addEventListener('click', () => {
@@ -5982,7 +4392,7 @@ if (startBtn) {
                 }
                 try { await loadAccounts(); } catch { }
                 try { updateReadySelectionLabel(); } catch { }
-                render();
+                scheduleRender();
                 // Auto mode: después de pintar, selecciona la siguiente cuenta y auto selecciona píxeles
                 if (autoMode && paintedAny && !hadRequestError) {
                     try {
@@ -6059,7 +4469,7 @@ function refreshBaseTilePreserveView() {
             try { baseImageData = null; } catch { }
             try { currentTiles = [{ x: Number(base.x), y: Number(base.y) }]; } catch { }
             try { currentTileW = next.width; currentTileH = next.height; } catch { }
-            render();
+            scheduleRender();
             try { updatePixelMarkers(); } catch { }
         };
         next.onerror = () => { };
@@ -6076,7 +4486,7 @@ function refreshAllUnlockedOverlays() {
                 imgEl.onload = () => {
                     try { neighborOverlays.set(key, { ...ov, image: imgEl }); } catch { }
                     overlayVersion++;
-                    render();
+                    scheduleRender();
                     try { saveOverlaysToStorage(); } catch { }
                 };
                 imgEl.onerror = () => { };
@@ -6155,7 +4565,7 @@ function maybeAddSelectionAtHover() {
         if (pixelSelectedList) pixelSelectedList.hidden = false;
         try { updateReadySelectionLabel(); updateStartEnabled(); } catch { }
         try { refreshPaletteTooltips(); } catch { }
-        drawSelectionOverlay();
+        scheduleOverlayDraw();
         return true;
     } else {
         const selItem = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
@@ -6203,7 +4613,7 @@ function maybeRemoveSelectionAtHover() {
         readyGlobalSelected.delete(key);
         try { updateReadySelectionLabel(); updateStartEnabled(); } catch { }
         try { refreshPaletteTooltips(); } catch { }
-        drawSelectionOverlay();
+        scheduleOverlayDraw();
         return true;
     } else {
         const selItem = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
@@ -6261,7 +4671,7 @@ window.addEventListener('keyup', (e) => {
             if (!isNaN(sx)) state.translateX = sx;
             if (!isNaN(sy)) state.translateY = sy;
             if (!isNaN(sc)) state.scale = Math.min(state.maxScale, Math.max(state.minScale, sc));
-            render();
+            scheduleRender();
             updatePixelMarkers();
         } catch { }
         // Restore last looked world coordinates
@@ -6285,7 +4695,6 @@ window.addEventListener('keyup', (e) => {
     updateCounter();
     loadAccounts();
 })();
-updatePixelPowerPosition();
 
 try {
     setInterval(() => { refreshAllAccounts(); }, 20 * 1000);
