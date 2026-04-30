@@ -3784,6 +3784,7 @@ function getReadySelectionLimit() {
         const c = Number.isFinite(Number(a.pixelCount)) ? Number(a.pixelCount) : 0;
         total += Math.max(0, Math.floor(c));
     }
+    if (total > 500) total = 500 - String(total).length;
     return total;
 }
 
@@ -4067,17 +4068,17 @@ if (autoSelectBtn) {
         const selItem = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
         if (!selItem || !selItem.image || !selItem.image.complete) return;
 
-        const limit = Math.max(0, Number(getReadySelectionLimit()) || 0);
+        const limit = Math.max(0, Number(getReadySelectionLimit()) || 0)
         const map = getSelectedMap(selItem);
         const already = map ? map.size : 0;
+
         if (already >= limit) return;
         const start = (selItem._lastManualSelected && Number.isFinite(selItem._lastManualSelected.x) && Number.isFinite(selItem._lastManualSelected.y))
             ? { x: selItem._lastManualSelected.x, y: selItem._lastManualSelected.y }
             : { x: 0, y: 0 };
         const w = selItem.image.naturalWidth | 0;
         const h = selItem.image.naturalHeight | 0;
-        const randomOffset = Math.floor(Math.random() * 6) + 1;
-        const need = (limit - already) >= 500 ? (500 - randomOffset) : (limit - already);
+        const need = limit - already
         let addedCount = 0;
 
         if (selectMode === 'frame') {
