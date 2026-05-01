@@ -21,11 +21,11 @@
     "got-scraping"
   ],
   "dependencies": {
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.1.0",
-    "got-scraping": "^4.1.2",
-    "impit": "^0.5.4",
+    "express": "^5.2.1",
+    "got-scraping": "^4.2.1",
+    "impit": "^0.13.1",
     "pngjs": "^7.0.0",
     "puppeteer-intercept-and-modify-requests": "^1.3.1",
     "puppeteer-real-browser": "^1.4.4"

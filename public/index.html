@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WPlace UltraBOT</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
@@ -14,78 +15,73 @@
   <canvas id="selection-overlay"></canvas>
   <div id="pixel-selected-list" hidden></div>
   <div id="top-toolbar">
-  <div id="sound-control">
-    <button id="sound-toggle" class="app-btn" type="button" title="" aria-label="">🔊</button>
-    <div class="sound-slider" role="group" aria-label="Sound settings">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#e5e7eb;opacity:0.9;font-size:12px">
-        <span data-i18n=""></span>
-        <div id="sound-volume" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Volume">
-          <div class="slider-track"></div>
-          <div class="slider-fill"></div>
-          <div class="slider-thumb"></div>
-        </div>
-      </div>
-    </div>
-  </div>
     <div id="control-panel">
       <div class="controls-row">
-        <button id="btn-accounts" class="app-btn" type="button" data-i18n="nav.accounts">Accounts</button>
-        <div id="pixel-power" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
+        <button id="btn-accounts" class="app-btn" type="button">Accounts</button>
+        <div id="pixel-power" role="status" aria-live="polite" data-count="0" data-max="0">Pixel power: 0 / 0</div>
       </div>
       <div>
-        <button id="btn-ready" class="app-btn" type="button" disabled data-i18n="ready.prepare">Ready</button>
+        <button id="btn-ready" class="app-btn" type="button" disabled>Ready</button>
         <div id="ready-popup" hidden>
+          <!-- 1. Header -->
           <div class="ready-header">
-            <button id="btn-ready-account" class="app-btn" type="button" data-i18n="ready.selectAccount">Select account</button>
-            <div id="ready-pixel" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
+            <button id="btn-ready-account" class="app-btn" type="button">Select account</button>
+            <div id="ready-pixel" role="status" aria-live="polite" data-count="0" data-max="0">Pixel power: 0 / 0</div>
           </div>
-          <div class="controls-row" id="auto-mode-controls">
-            <div class="select-mode-wrap">
-              <span id="auto-mode-label-left" class="select-mode-label" data-i18n="ready.autoMode.off">Auto mode off</span>
-              <button id="auto-mode-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto mode">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="auto-mode-label-right" class="select-mode-label" data-i18n="ready.autoMode.on">Auto mode on</span>
-            </div>
-            <div class="select-mode-wrap" style="margin-left:12px;">
-              <span id="auto-start-label-left" class="select-mode-label" data-i18n="ready.autoStart.off">Auto start off</span>
-              <button id="auto-start-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto start on token">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="auto-start-label-right" class="select-mode-label" data-i18n="ready.autoStart.on">Auto start on</span>
-              <span id="auto-start-countdown" class="select-mode-label" style="margin-left:8px; color:#ffd700; font-weight:bold;"></span>
+
+          <!-- 2. Draw Mode -->
+          <div id="draw-mode-group" class="ready-section">
+            <span class="ready-section-label">Draw mode</span>
+            <div class="filter-chip-group">
+              <button class="filter-chip active" data-draw-mode="multi">Select from start</button>
+              <button class="filter-chip" data-draw-mode="frame">Select from outline</button>
+              <button class="filter-chip" data-draw-mode="color">Select by colour</button>
             </div>
           </div>
-          <div class="controls-row" id="human-delay-controls" style="margin-top:8px; justify-content: center; gap: 12px; flex-wrap: wrap;">
-            <div class="select-mode-wrap">
-              <span id="human-delay-label-left" class="select-mode-label" data-i18n="ready.humanDelay.off">Human delay off</span>
-              <button id="human-delay-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Human delay">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="human-delay-label-right" class="select-mode-label" data-i18n="ready.humanDelay.on">Human delay on</span>
+
+          <!-- 3. Settings -->
+          <div class="ready-section ready-settings">
+            <div class="ready-setting-row">
+              <div class="select-mode-wrap">
+                <button id="auto-mode-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto mode">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="auto-mode-label-right" class="select-mode-label">Auto mode</span>
+              </div>
             </div>
-            <div id="human-delay-inputs" style="display:flex; align-items:center; gap:8px;" hidden>
-              <input id="human-min" type="number" min="0" value="30" style="width:60px; text-align:center;" placeholder="Min" aria-label="Min seconds" />
-              <span>-</span>
-              <input id="human-max" type="number" min="0" value="60" style="width:60px; text-align:center;" placeholder="Max" aria-label="Max seconds" />
-              <span style="font-size:12px; opacity:0.8;">sec</span>
+            <div class="ready-setting-row">
+              <div class="select-mode-wrap">
+                <button id="auto-start-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto start on token">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="auto-start-label-right" class="select-mode-label">Auto start</span>
+                <span id="auto-start-countdown" class="select-mode-label" style="margin-left:8px; color:#ffd700; font-weight:bold;"></span>
+              </div>
+            </div>
+            <div class="ready-setting-row" id="human-delay-controls">
+              <div class="select-mode-wrap">
+                <button id="human-delay-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Human delay">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="human-delay-label-right" class="select-mode-label">Human delay</span>
+              </div>
+              <div id="human-delay-inputs" hidden>
+                <input style="width: 60px;" id="human-min" type="number" min="0" value="30" placeholder="Min" />
+                <span>&ndash;</span>
+                <input style="width: 60px;" id="human-max" type="number" min="0" value="60" placeholder="Max" />
+                <span>sec</span>
+              </div>
             </div>
           </div>
+
+          <!-- 4. Actions -->
+          <div class="ready-actions">
+            <button id="btn-auto-select" class="app-btn" type="button">Auto select</button>
+            <button id="start" class="app-btn start-btn" type="button">Start</button>
+          </div>
+
+          <!-- 5. Account list -->
           <div id="ready-account-list" hidden></div>
-          <div class="controls-row" hidden>
-            <button id="btn-auto-select-accounts" class="app-btn" type="button" data-i18n="ready.autoSelectAccounts">Auto select account</button>
-          </div>
-          <div class="controls-row">
-            <button id="btn-auto-select" class="app-btn" type="button" data-i18n="ready.autoSelect">Auto select</button>
-            <button id="start" class="app-btn" type="button" data-i18n="ready.start">Start</button>
-          </div>
-          <div class="controls-row" id="select-mode-controls">
-            <div class="select-mode-wrap">
-              <span id="select-mode-label-left" class="select-mode-label active" data-i18n="ready.selectMode.multi">Select from start</span>
-              <span id="select-mode-label-right" class="select-mode-label" data-i18n="ready.selectMode.frame">Select from outline</span>
-              <span id="select-mode-label-color" class="select-mode-label" data-i18n="ready.selectMode.color">Select by colour</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -97,43 +93,42 @@
   <aside id="sidebar"><div id="counter" class="counter"></div><div id="thumb-list"></div></aside>
   <div id="accounts-modal" hidden>
     <div class="modal-card">
-      <button id="accounts-close" class="modal-close app-btn" title="Close" type="button" data-i18n-title="modal.closeTitle">×</button>
+      <button id="accounts-close" class="modal-close app-btn" title="Close" type="button"><i class="fa-solid fa-xmark"></i></button>
       <div class="modal-tabs">
-        <button id="btn-shop-back" class="app-btn modal-back" type="button" data-i18n="buttons.back" hidden>Back</button>
-        <button id="tab-accounts" class="tab-button active" type="button" data-i18n="tabs.accounts">Accounts</button>
-        
-        <div id="shop-droplets-info" class="app-btn modal-right-info" hidden>💧 Droplets: -</div>
+        <button id="btn-shop-back" class="app-btn modal-back" type="button" hidden>Back</button>
+        <button id="tab-accounts" class="tab-button active" type="button">Accounts</button>
+        <div id="shop-droplets-info" class="app-btn modal-right-info" hidden><i class="fa-solid fa-droplet"></i> Droplets: -</div>
       </div>
       <div class="modal-body">
         <div id="accounts-section">
           <div class="accounts-actions">
-            <button id="btn-account-add" class="app-btn" type="button" data-i18n="accounts.add">Add account</button>
-            <button id="btn-check-all" class="app-btn" type="button" data-i18n-title="accounts.checkAllTitle"><span class="label" data-i18n="accounts.checkAll">Check All Accounts</span> <span class="spin-indicator">⟳</span></button>
+            <button id="btn-account-add" class="app-btn" type="button">Add account</button>
+            <button id="btn-check-all" class="app-btn" type="button"><span class="label">Check All Accounts</span> <span class="spin-indicator"><i class="fa-solid fa-spinner"></i></span></button>
           </div>
           <div class="account-toolbar">
             <div class="account-search-wrap">
-              <span class="search-icon">🔍</span>
-              <input id="account-search" type="text" placeholder="Search account name..." data-i18n-placeholder="table.search" />
+              <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input id="account-search" type="text" placeholder="Search account name..." />
             </div>
-            <div class="account-filter-group">
-              <button class="filter-chip active" data-filter="all" data-i18n="table.filterAll">All</button>
-              <button class="filter-chip" data-filter="active" data-i18n="table.filterActive">Active</button>
-              <button class="filter-chip" data-filter="inactive" data-i18n="table.filterInactive">Inactive</button>
-            </div>
+            <select id="account-status-filter" class="filter-dropdown">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
           <div id="check-all-overlay" class="check-all-overlay" hidden>
-            <div class="check-all-spinner">⟳</div>
-            <span data-i18n="accounts.checkingAll">Checking all accounts...</span>
+            <div class="check-all-spinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <span>Checking all accounts...</span>
           </div>
           <div class="table-responsive">
             <table id="accounts-table" class="table table-dark table-striped table-hover table-sm align-middle mb-2">
               <thead>
                 <tr>
-                  <th data-i18n="table.accountName">Account name</th>
-                  <th data-i18n="table.droplets" class="sortable" data-sort="droplets">Droplets <span class="sort-indicator"></span></th>
-                  <th data-i18n="table.pixelRight">Pixel limit</th>
-                  <th data-i18n="table.status">Status</th>
-                  <th data-i18n="table.actions">Action</th>
+                  <th>Account name</th>
+                  <th class="sortable" data-sort="droplets">Droplets <span class="sort-indicator"></span></th>
+                  <th>Pixel limit</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="accounts-tbody"></tbody>
@@ -142,203 +137,213 @@
         </div>
         <div id="account-form-section" hidden>
           <div class="form-grid">
-            <label for="account-name-input" data-i18n="form.accountNameLabel">Account name</label>
-            <input id="account-name-input" type="text" placeholder="e.g., Main account" data-i18n-placeholder="form.accountNamePlaceholder" />
-            <label for="account-token-input" data-i18n="form.accountTokenLabel">Account token</label>
-            <textarea id="account-token-input" rows="3" placeholder="e.g., eyJhbGciOi..." data-i18n-placeholder="form.accountTokenPlaceholder"></textarea>
-            <label data-i18n="form.proxyLabel">HTTP Proxy <span class="optional-label" data-i18n="form.proxyOptional">(Optional)</span></label>
+            <label for="account-name-input">Account name</label>
+            <input id="account-name-input" type="text" placeholder="e.g., Main account" />
+            <label for="account-token-input">Account token</label>
+            <textarea id="account-token-input" rows="4" placeholder="e.g., eyJhbGciOi..."></textarea>
+          </div>
+          <div class="fp-row">
+            <label id="fp-label" hidden>Fingerprint</label>
+            <button id="btn-regenerate-fp" class="app-btn icon-btn" type="button" hidden>
+              <i class="fa-solid fa-fingerprint"></i> Regenerate
+            </button>
+          </div>
+          <div class="form-grid">
+            <label>HTTP Proxy <span class="optional-label">(Optional)</span></label>
             <div class="proxy-grid">
-              <input id="proxy-user" type="text" placeholder="User" data-i18n-placeholder="form.proxyUser" />
-              <input id="proxy-pass" type="password" placeholder="Password" data-i18n-placeholder="form.proxyPass" />
-              <input id="proxy-host" type="text" placeholder="Host" data-i18n-placeholder="form.proxyHost" />
-              <input id="proxy-port" type="text" placeholder="Port" data-i18n-placeholder="form.proxyPort" />
+              <input id="proxy-host" type="text" placeholder="Host" />
+              <input id="proxy-port" type="text" placeholder="Port" />
+              <input id="proxy-user" type="text" placeholder="User" />
+              <input id="proxy-pass" type="password" placeholder="Password" />
             </div>
-            <div></div>
+            <p class="proxy-hint">Supports IPv4 and IPv6</p>
             <div class="proxy-actions">
-              <button id="btn-check-proxy" class="app-btn" type="button" data-i18n="form.checkProxy">Check proxy</button>
+              <button id="btn-check-proxy" class="app-btn" type="button">Test proxy</button>
               <span id="proxy-status" class="proxy-status" hidden></span>
             </div>
             <input id="account-id-input" type="hidden" />
           </div>
           <div class="modal-footer split">
-            <button id="btn-account-cancel" class="app-btn" type="button" data-i18n="buttons.back">Back</button>
-            <button id="btn-account-save" class="app-btn" type="button" data-i18n="buttons.add">Add</button>
+            <button id="btn-account-cancel" class="app-btn" type="button">Back</button>
+            <button id="btn-account-save" class="app-btn" type="button">Add</button>
           </div>
         </div>
         <div id="shop-view-section" hidden>
           <div class="shop-header">
-            <div class="shop-title" data-i18n="shop.itemsTitle">Items</div>
-            <div class="shop-sub" data-i18n="shop.itemsSub">Get more charges</div>
+            <div class="shop-title">Items</div>
+            <div class="shop-sub">Get more charges</div>
           </div>
           <div class="shop-grid">
             <div class="shop-card" id="shop-card-max">
-              <div class="shop-icon">⬆️</div>
-              <div id="shop-max-name" class="shop-name" data-i18n="shop.maxTitle">+5 Max. Charges</div>
-              <div class="shop-desc" data-i18n="shop.maxDesc">Increase your maximum paint charges capacity</div>
+              <div class="shop-icon"><i class="fa-solid fa-arrow-up"></i></div>
+              <div id="shop-max-name" class="shop-name">+5 Max. Charges</div>
+              <div class="shop-desc">Increase your maximum paint charges capacity</div>
               <div class="shop-qty-row">
                 <button class="app-btn shop-qty-btn" id="shop-max-dec" type="button">-</button>
                 <div class="shop-qty-val" id="shop-max-qty">1</div>
                 <button class="app-btn shop-qty-btn" id="shop-max-inc" type="button">+</button>
                 <button class="app-btn shop-qty-btn" id="shop-max-max" type="button">MAX</button>
               </div>
-              <div class="shop-pill" id="shop-max-price" role="button" tabindex="0">💧 500 Droplets</div>
+              <div class="shop-pill" id="shop-max-price" role="button" tabindex="0"><i class="fa-solid fa-droplet"></i> 500 Droplets</div>
               <div class="shop-auto-wrap">
-                <span class="select-mode-label" data-i18n="shop.autoBuy">Auto-buy</span>
+                <span class="select-mode-label">Auto-buy</span>
                 <button class="select-mode-track" id="shop-max-auto" type="button" role="switch" aria-checked="false" aria-label="Auto-buy"><span class="select-mode-knob"></span></button>
               </div>
             </div>
             <div class="shop-card" id="shop-card-recharge">
-              <div class="shop-icon">🩸</div>
-              <div id="shop-rec-name" class="shop-name" data-i18n="shop.recTitle">+30 Paint Charges</div>
-              <div class="shop-desc" data-i18n="shop.recDesc">Recharge paint charges</div>
+              <div class="shop-icon"><i class="fa-solid fa-droplet" style="color:#e74c3c"></i></div>
+              <div id="shop-rec-name" class="shop-name">+30 Paint Charges</div>
+              <div class="shop-desc">Recharge paint charges</div>
               <div class="shop-qty-row">
                 <button class="app-btn shop-qty-btn" id="shop-rec-dec" type="button">-</button>
                 <div class="shop-qty-val" id="shop-rec-qty">1</div>
                 <button class="app-btn shop-qty-btn" id="shop-rec-inc" type="button">+</button>
                 <button class="app-btn shop-qty-btn" id="shop-rec-max" type="button">MAX</button>
               </div>
-              <div class="shop-pill" id="shop-rec-price">💧 500 Droplets</div>
+              <div class="shop-pill" id="shop-rec-price"><i class="fa-solid fa-droplet"></i> 500 Droplets</div>
               <div class="shop-auto-wrap">
-                <span class="select-mode-label" data-i18n="shop.autoBuy">Auto-buy</span>
+                <span class="select-mode-label">Auto-buy</span>
                 <button class="select-mode-track" id="shop-rec-auto" type="button" role="switch" aria-checked="false" aria-label="Auto-buy"><span class="select-mode-knob"></span></button>
               </div>
             </div>
             <div class="shop-card" id="shop-card-premium">
-              <div class="shop-icon">🌈</div>
-              <div class="shop-name" data-i18n="shop.premiumTitle">Premium Colors</div>
-              <div class="shop-desc" data-i18n="shop.purchased">Purchased colors</div>
+              <div class="shop-icon"><i class="fa-solid fa-palette"></i></div>
+              <div class="shop-name">Premium Colors</div>
+              <div class="shop-desc">Purchased colors</div>
               <div id="shop-premium-owned" class="shop-palette-grid" aria-label="Owned premium colors"></div>
-              <div class="shop-desc" style="margin-top:8px;" data-i18n="shop.exclusive">Exclusive palette</div>
+              <div class="shop-desc" style="margin-top:8px;">Exclusive palette</div>
               <div id="shop-premium-palette" class="shop-palette-grid" aria-label="Premium color palette"></div>
-              <div id="shop-premium-buy" class="shop-pill" role="button" tabindex="0" data-i18n="shop.buyPremium">💧 2000 Droplets</div>
+              <div id="shop-premium-buy" class="shop-pill" role="button" tabindex="0"><i class="fa-solid fa-droplet"></i> 2000 Droplets</div>
             </div>
           </div>
         </div>
-        
       </div>
     </div>
   </div>
 
   <div id="img-preview-modal" hidden>
     <div class="modal-card" style="width:min(720px,95vw);max-width:95vw;">
-      <button id="img-preview-close" class="modal-close app-btn" title="Close" type="button" data-i18n-title="modal.closeTitle">×</button>
-      <div class="modal-header" data-i18n="form.uploadImage">Upload image</div>
+      <button id="img-preview-close" class="modal-close app-btn" title="Close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-header">Upload image</div>
       <div class="modal-body">
         <canvas id="img-preview-canvas" width="540" height="300" aria-label="Image preview"></canvas>
         <div class="img-preview-flex">
           <div>
             <div class="img-preview-grid">
-              <label for="img-scale" data-i18n="preview.scale">Scale (%)</label>
+              <label for="img-scale">Scale (%)</label>
               <input id="img-scale" type="number" min="1" max="800" step="1" value="100" />
-              <label for="img-keep-ratio" data-i18n="preview.keepRatio">Keep ratio</label>
+              <label for="img-keep-ratio">Keep ratio</label>
               <label class="toggle" aria-label="Keep ratio">
                 <input id="img-keep-ratio" type="checkbox" checked />
                 <span class="slider"></span>
               </label>
-              <label for="img-width" data-i18n="preview.width">Width</label>
+              <label for="img-width">Width</label>
               <input id="img-width" type="number" min="1" max="1000" step="1" />
-              <label for="img-height" data-i18n="preview.height">Height</label>
+              <label for="img-height">Height</label>
               <input id="img-height" type="number" min="1" max="1000" step="1" />
-              <label for="img-alpha-input" data-i18n="preview.alphaThreshold">Transparency</label>
+              <label for="img-alpha-input">Transparency</label>
               <input id="img-alpha-input" type="number" min="0" max="255" step="1" value="5" />
-              <label for="img-color-metric" data-i18n="preview.colorMetric">Color algorithm</label>
+              <label for="img-color-metric">Color algorithm</label>
               <select id="img-color-metric">
-                <option value="oklab" data-i18n="preview.metricOklab" selected>Oklab</option>
-                <option value="rgb" data-i18n="preview.metricRgb">RGB (fast)</option>
-                <option value="lab" data-i18n="preview.metricLab">Lab (CIE76)</option>
-                <option value="ciede2000" data-i18n="preview.metricCiede2000">CIEDE2000 (more accurate, slower)</option>
+                <option value="oklab" selected>Oklab</option>
+                <option value="rgb">RGB (fast)</option>
+                <option value="lab">Lab (CIE76)</option>
+                <option value="ciede2000">CIEDE2000 (more accurate, slower)</option>
               </select>
-              <label for="img-dither-toggle" data-i18n="preview.dithering">Dithering</label>
-              <button id="img-dither-toggle" class="app-btn" type="button" data-state="off" data-i18n="preview.ditheringOff">Dithering: OFF</button>
+              <label for="img-dither-toggle">Dithering</label>
+              <button id="img-dither-toggle" class="app-btn" type="button" data-state="off">Dithering: OFF</button>
             </div>
           </div>
           <div id="img-fill-side">
             <div class="row">
-              <label for="img-fill-toggle" data-i18n="preview.fillBackground" style="margin-right:8px;">Fill background</label>
+              <label for="img-fill-toggle" style="margin-right:8px;">Fill background</label>
               <label class="toggle" aria-label="Fill background" style="justify-self:start;">
                 <input id="img-fill-toggle" type="checkbox" />
                 <span class="slider"></span>
               </label>
             </div>
             <div class="row color-row">
-              <label for="img-fill-color" data-i18n="preview.color">Color</label>
+              <label for="img-fill-color">Color</label>
               <div id="img-fill-color" aria-disabled="true"></div>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="img-preview-cancel" class="app-btn" type="button" data-i18n="buttons.back">Back</button>
-        <button id="img-preview-apply" class="app-btn" type="button" data-i18n="preview.addToMap">Add to map</button>
+        <button id="img-preview-cancel" class="app-btn" type="button">Back</button>
+        <button id="img-preview-apply" class="app-btn" type="button">Add to map</button>
       </div>
     </div>
   </div>
 
-  
+
 
   <form class="panel" id="form">
-    <button class="app-btn" type="button" id="btn-open-favorites" title="Favorites" data-i18n-title="favorites.openTitle">📁</button>
-    <button class="app-btn" type="button" id="btn-favorite-star" title="Save" data-i18n-title="favorites.starTitle">★</button>
-    <label for="area-code" data-i18n="form.worldXLabel">World X</label>
-    <input id="area-code" name="area code" type="number" min="0" step="1" inputmode="numeric" />
-
-    <label for="no" data-i18n="form.worldYLabel">World Y</label>
-    <input id="no" name="no" type="number" min="0" step="1" inputmode="numeric" />
-
-    <button class="app-btn" type="submit" data-i18n="form.fetchButton">Fetch</button>
-    <button class="app-btn" type="button" id="btn-upload-sign" data-i18n="form.uploadImage">Upload image</button>
+    <div class="panel-favorites">
+      <button class="app-btn panel-icon-btn" type="button" id="btn-open-favorites" title="Favorites"><i class="fa-solid fa-folder-open"></i></button>
+      <button class="app-btn panel-icon-btn" type="button" id="btn-favorite-star" title="Save"><i class="fa-solid fa-star"></i></button>
+    </div>
+    <div class="panel-coords">
+      <label for="area-code">X</label>
+      <input id="area-code" name="area code" type="number" min="0" step="1" inputmode="numeric" />
+      <label for="no">Y</label>
+      <input id="no" name="no" type="number" min="0" step="1" inputmode="numeric" />
+    </div>
+    <div class="panel-actions">
+      <button class="app-btn panel-btn" type="submit">Fetch</button>
+      <button class="app-btn panel-btn" type="button" id="btn-upload-sign"><i class="fa-solid fa-image"></i> Upload</button>
+    </div>
   </form>
- 
+
   <div id="app-toast-container" aria-live="polite" aria-atomic="true"></div>
-  <div id="color-palette" aria-label="Color palette" role="group" data-i18n-aria-label="labels.colorPalette"></div>
+  <div id="color-palette" aria-label="Color palette" role="group"></div>
   <div id="palette-mode" class="palette-mode-wrap" aria-label="Palette mode" style="bottom:76px; left:50%; transform:translateX(-50%); visibility:hidden;">
-    <span id="palette-mode-label-left" class="palette-mode-label active" data-i18n="paletteMode.premium">Use premium color</span>
+    <span id="palette-mode-label-left" class="palette-mode-label active">Use premium color</span>
     <button id="palette-mode-toggle" class="palette-mode-track" type="button" role="switch" aria-checked="true" aria-label="Palette mode"><span class="palette-mode-knob"></span></button>
-    <span id="palette-mode-label-right" class="palette-mode-label" data-i18n="paletteMode.free">Use free color</span>
+    <span id="palette-mode-label-right" class="palette-mode-label">Use free color</span>
   </div>
 
   <div id="move-control">
-    <button id="btn-movement" class="app-btn" type="button" data-i18n="controls.movement">Movement</button>
+    <button id="btn-movement" class="app-btn" type="button">Movement</button>
     <div id="movement-popup" hidden>
       <div class="movement-grid">
         <span></span>
-        <button id="move-up" class="app-btn dir-btn" type="button" title="Up" aria-label="Up" data-i18n-title="movement.up" data-i18n-aria-label="movement.up">▲</button>
+        <button id="move-up" class="app-btn dir-btn" type="button" title="Up" aria-label="Up"><i class="fa-solid fa-arrow-up"></i></button>
         <span></span>
-        <button id="move-left" class="app-btn dir-btn" type="button" title="Left" aria-label="Left" data-i18n-title="movement.left" data-i18n-aria-label="movement.left">◄</button>
+        <button id="move-left" class="app-btn dir-btn" type="button" title="Left" aria-label="Left"><i class="fa-solid fa-arrow-left"></i></button>
         <span></span>
-        <button id="move-right" class="app-btn dir-btn" type="button" title="Right" aria-label="Right" data-i18n-title="movement.right" data-i18n-aria-label="movement.right">►</button>
+        <button id="move-right" class="app-btn dir-btn" type="button" title="Right" aria-label="Right"><i class="fa-solid fa-arrow-right"></i></button>
         <span></span>
-        <button id="move-down" class="app-btn dir-btn" type="button" title="Down" aria-label="Down" data-i18n-title="movement.down" data-i18n-aria-label="movement.down">▼</button>
+        <button id="move-down" class="app-btn dir-btn" type="button" title="Down" aria-label="Down"><i class="fa-solid fa-arrow-down"></i></button>
         <span></span>
       </div>
     </div>
   </div>
   <div id="favorites-modal" hidden>
     <div class="modal-card">
-      <div class="modal-header" data-i18n="favorites.title">Favorites</div>
-      <button id="favorites-close" class="modal-close app-btn" type="button" data-i18n-title="modal.closeTitle">×</button>
+      <div class="modal-header">Favorites</div>
+      <button id="favorites-close" class="modal-close app-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
       <div class="modal-body" id="favorites-list"></div>
     </div>
   </div>
 
   <div id="save-fav-modal" hidden>
     <div class="modal-card">
-      <div class="modal-header" data-i18n="favorites.saveTitle">Save location</div>
-      <button id="save-fav-close" class="modal-close app-btn" type="button" data-i18n-title="modal.closeTitle">×</button>
+      <div class="modal-header">Save location</div>
+      <button id="save-fav-close" class="modal-close app-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
       <div class="modal-body">
-        <label for="fav-name-input" data-i18n="favorites.nameLabel">Name</label>
+        <label for="fav-name-input">Name</label>
         <input id="fav-name-input" type="text" />
       </div>
       <div class="modal-footer">
-        <button id="fav-save-btn" class="app-btn" type="button" data-i18n="buttons.save">Save</button>
+        <button id="fav-save-btn" class="app-btn" type="button">Save</button>
       </div>
     </div>
   </div>
   <script src="./js/state.js"></script>
-  <script src="./js/i18n.js"></script>
+  <script src="./js/toast.js"></script>
   <script src="./js/api.js"></script>
   <script src="./js/palette.js"></script>
   <script src="./js/script.js"></script>
-  <script src="./js/sound.js"></script>
 </body>
 </html>

@@ -48,8 +48,8 @@ function renderFavoritesList() {
         const f = favs[i];
         const row = document.createElement('div'); row.className = 'favorite-item';
         const span = document.createElement('span'); span.textContent = f && f.name ? f.name : (f && f.mode === 'single' ? `${f.coords[0].x}, ${f.coords[0].y}` : '');
-        const loadBtn = document.createElement('button'); loadBtn.type = 'button'; loadBtn.className = 'app-btn'; loadBtn.textContent = t('favorites.load') || 'Yükle'; loadBtn.dataset.index = String(i); loadBtn.dataset.action = 'load';
-        const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'app-btn'; delBtn.textContent = t('buttons.delete') || 'Sil'; delBtn.dataset.index = String(i); delBtn.dataset.action = 'delete';
+        const loadBtn = document.createElement('button'); loadBtn.type = 'button'; loadBtn.className = 'app-btn'; loadBtn.textContent = 'Load'; loadBtn.dataset.index = String(i); loadBtn.dataset.action = 'load';
+        const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'app-btn'; delBtn.textContent = 'Delete'; delBtn.dataset.index = String(i); delBtn.dataset.action = 'delete';
         row.appendChild(span); row.appendChild(loadBtn); row.appendChild(delBtn); favoritesListEl.appendChild(row);
     }
 }
@@ -213,11 +213,6 @@ const thumbList = document.getElementById('thumb-list');
 const counter = document.getElementById('counter');
 const accountsBtn = document.getElementById('btn-accounts');
 const pixelPowerEl = document.getElementById('pixel-power');
-const soundToggleBtn = document.getElementById('sound-toggle');
-const soundVolumeEl = document.getElementById('sound-volume');
-const soundVolumeValue = document.getElementById('sound-volume-value');
-
-
 // Movement controls (pixel-by-pixel image movement)
 const movementBtn = document.getElementById('btn-movement');
 const movementPopup = document.getElementById('movement-popup');
@@ -287,7 +282,7 @@ function clampPositionForItem(item, x, y) {
 }
 function moveSelectedBy(dx, dy, step) {
     const it = getSelectedItem();
-    if (!it || !it.image || !it.image.complete) { try { showToast(t('messages.noSelectedImage'), 'error', 1800); } catch { } return; }
+    if (!it || !it.image || !it.image.complete) { try { showToast('No selected image', 'error', 1800); } catch { } return; }
     if (it.locked || it.lockedByReady) { return; }
     const mult = Number.isFinite(step) ? Math.max(1, step | 0) : 1;
     const targetX = (it.worldX || 0) + dx * mult;
@@ -473,13 +468,13 @@ function addThumbForItem(item, index) {
     div.className = 'thumb-item';
     const im = document.createElement('img');
     im.src = item.url;
-    im.alt = item.name || (t('thumb.imageAlt', { n: (index + 1) }));
+    im.alt = item.name || (`Image ${index + 1}`);
     div.appendChild(im);
     const actions = document.createElement('div');
     actions.className = 'thumb-actions';
     const btnLock = document.createElement('button');
     btnLock.className = 'thumb-action lock';
-    btnLock.title = t('thumb.lock');
+    btnLock.title = item.locked ? 'Locked' : 'Unlocked';
     btnLock.textContent = item.locked ? '🔒' : '🔓';
     btnLock.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -500,7 +495,7 @@ function addThumbForItem(item, index) {
     });
     const btnDel = document.createElement('button');
     btnDel.className = 'thumb-action del';
-    btnDel.title = t('buttons.delete');
+    btnDel.title = 'Delete';
     btnDel.textContent = '🗑️';
     btnDel.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -751,7 +746,6 @@ function maybeNotifyFullnessNow() {
     const now = Date.now();
     if (now - lastFullnessNotifyAt >= FULLNESS_NOTIFY_PERIOD_MS - 50) {
         lastFullnessNotifyAt = now;
-        playNotifySound();
     }
 }
 function checkFullnessNotify() {
@@ -797,6 +791,8 @@ const checkAllBtn = document.getElementById('btn-check-all');
 const accountNameInput = document.getElementById('account-name-input');
 const accountTokenInput = document.getElementById('account-token-input');
 const accountIdInput = document.getElementById('account-id-input');
+const fpLabel = document.getElementById('fp-label');
+const btnRegenerateFp = document.getElementById('btn-regenerate-fp');
 const accountCancelBtn = document.getElementById('btn-account-cancel');
 const accountSaveBtn = document.getElementById('btn-account-save');
 const proxyUserInput = document.getElementById('proxy-user');
@@ -1497,7 +1493,7 @@ function setupColorPalette() {
 
     const swT = document.createElement('div');
     swT.className = 'palette-swatch transparent selected';
-    swT.title = t('palette.transparentTitle');
+    swT.title = 'Transparent';
     swT.setAttribute('role', 'button');
     swT.addEventListener('click', () => {
         try {
@@ -1551,7 +1547,7 @@ function setupColorPalette() {
                 const providers = getAccountsProvidingColor(p.id);
                 const remain = getPremiumColorRemainingLimit(p.id);
                 if (!(Array.isArray(providers) && providers.length > 0 && remain > 0)) {
-                    try { showToast(t('messages.premiumColorLimitReached'), 'error', 2000); } catch { }
+                    try { showToast('Premium color limit reached', 'error', 2000); } catch { }
                     return;
                 }
             }
@@ -2304,7 +2300,7 @@ function loadImage(area, no, preserveView = false) {
         } catch { }
     };
     image.onerror = () => {
-        alert(t('messages.imageLoadFailed'));
+        alert('Failed to load image');
     };
     image.src = url;
 }
@@ -2596,7 +2592,7 @@ window.addEventListener('mouseup', (e) => {
         if (readyMouseDownPt && !readyMouseMoved && e.button === 0) {
             const hasAccounts = Array.isArray(readySelectedAccountIds) && readySelectedAccountIds.length > 0;
             if (!hasAccounts) {
-                showToast(t('messages.selectAccountFirst'), 'error', 2000);
+                showToast('Please select an account first', 'error', 2000);
                 readyMouseDownPt = null; readyMouseMoved = false;
                 return;
             }
@@ -2618,7 +2614,7 @@ window.addEventListener('mouseup', (e) => {
                 if (wx >= 0 && wy >= 0 && wx < img.width && wy < img.height) {
                     const limit = Math.max(0, Number(getReadySelectionLimit()) || 0);
                     if (limit > 0 && readyGlobalSelected.size >= limit) {
-                        showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+                        showToast(`Max ${limit} pixels allowed`, 'error', 2000);
                         readyMouseDownPt = null; readyMouseMoved = false;
                         return;
                     }
@@ -2643,7 +2639,7 @@ window.addEventListener('mouseup', (e) => {
                             const map = getSelectedMap(selItem);
                             const already = map ? map.size : 0;
                             if (limit > 0 && already >= limit) {
-                                showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+                                showToast(`Max ${limit} pixels allowed`, 'error', 2000);
                                 readyMouseDownPt = null; readyMouseMoved = false;
                                 return;
                             }
@@ -2850,13 +2846,48 @@ function showAccountForm() {
         proxyPassInput.value = '';
         proxyHostInput.value = '';
         proxyPortInput.value = '';
+        if (fpLabel) fpLabel.hidden = true;
+        if (btnRegenerateFp) btnRegenerateFp.hidden = true;
         accountNameInput.focus();
     } catch { }
     try {
-        accountSaveBtn.textContent = t('buttons.add');
+        accountSaveBtn.textContent = 'Add';
         proxyStatusEl.hidden = true;
+        if (accountStatusFilterSelect) accountStatusFilterSelect.value = accountStatusFilter || 'all';
     } catch { }
 }
+function parseProxyString(proxy) {
+    let user = '', pass = '', host = '', port = '';
+    if (!proxy) return { user, pass, host, port };
+    let rest = proxy;
+    const atIdx = rest.lastIndexOf('@');
+    if (atIdx >= 0) {
+        const up = rest.slice(0, atIdx);
+        rest = rest.slice(atIdx + 1);
+        const colonIdx = up.indexOf(':');
+        if (colonIdx >= 0) {
+            user = up.slice(0, colonIdx);
+            pass = up.slice(colonIdx + 1);
+        } else {
+            user = up;
+        }
+    }
+    const ipv6Match = rest.match(/^(\[[^\]]+\]):(\d+)$/);
+    if (ipv6Match) {
+        host = ipv6Match[1];
+        port = ipv6Match[2];
+    } else {
+        const lastColon = rest.lastIndexOf(':');
+        if (lastColon >= 0) {
+            host = rest.slice(0, lastColon);
+            port = rest.slice(lastColon + 1);
+        } else {
+            host = rest;
+        }
+    }
+    return { user, pass, host, port };
+}
+
 function openEditAccount(row) {
     if (!row) return;
     if (!accountsSection || !accountFormSection) return;
@@ -2866,24 +2897,21 @@ function openEditAccount(row) {
         accountNameInput.value = row.name || '';
         accountTokenInput.value = row.token || '';
         accountIdInput.value = String(row.id || '');
-        const proxy = row.proxy || '';
-        const atIdx = proxy.lastIndexOf('@');
-        let userpass = '', hostport = proxy;
-        if (atIdx >= 0) {
-            userpass = proxy.slice(0, atIdx);
-            hostport = proxy.slice(atIdx + 1);
-        }
-        const colonIdx = userpass.indexOf(':');
-        proxyUserInput.value = colonIdx >= 0 ? userpass.slice(0, colonIdx) : '';
-        proxyPassInput.value = colonIdx >= 0 ? userpass.slice(colonIdx + 1) : '';
-        const hpColon = hostport.lastIndexOf(':');
-        proxyHostInput.value = hpColon >= 0 ? hostport.slice(0, hpColon) : hostport;
-        proxyPortInput.value = hpColon >= 0 ? hostport.slice(hpColon + 1) : '';
+        const p = parseProxyString(row.proxy || '');
+        proxyUserInput.value = p.user;
+        proxyPassInput.value = p.pass;
+        proxyHostInput.value = p.host;
+        proxyPortInput.value = p.port;
         proxyStatusEl.hidden = true;
+        if (fpLabel) fpLabel.hidden = false;
+        if (btnRegenerateFp) {
+            btnRegenerateFp.hidden = false;
+            btnRegenerateFp.dataset.accountId = String(row.id || '');
+        }
         accountNameInput.focus();
     } catch { }
 
-    try { accountSaveBtn.textContent = t('buttons.save'); } catch { }
+    try { accountSaveBtn.textContent = 'Save'; } catch { }
 }
 // Only allow premium colors with id > 32
 
@@ -3066,14 +3094,14 @@ function setPaletteSwatchTitle(el, p) {
             if (hasSelected && inReady) {
                 const total = getPremiumColorTotalLimit(p.id); // selected accounts total
                 const remain = getPremiumColorRemainingLimit(p.id); // selected accounts remaining (subtracts used)
-                el.title = t('palette.premiumColorTitle', { remain, total });
+                el.title = `Premium color (Remaining: ${remain} / Total: ${total})`;
             } else {
                 const total = getPremiumColorTotalLimitAll(p.id); // all accounts total
                 const remain = getPremiumColorRemainingLimitAll(p.id); // equal to total across all
-                el.title = t('palette.premiumColorTitle', { remain, total });
+                el.title = `Premium color (Remaining: ${remain} / Total: ${total})`;
             }
         } else {
-            el.title = t('palette.colorTitle', { id: p.id });
+            el.title = `Color ${p.id}`;
         }
     } catch { }
 }
@@ -3177,7 +3205,7 @@ function openShopAccount(row) {
         if (shopDropletsInfo) {
             const dRaw = (row && row.droplets != null) ? Number(row.droplets) : null;
             const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-            shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+            shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
             shopDropletsInfo.hidden = false;
         }
     } catch { }
@@ -3190,12 +3218,12 @@ function openShopAccount(row) {
         if (shopMaxQtyEl) shopMaxQtyEl.textContent = '1';
         if (shopRecQtyEl) shopRecQtyEl.textContent = '1';
         const unitMax = 500, unitRec = 500;
-        if (shopMaxPriceEl) shopMaxPriceEl.textContent = '💧 ' + (unitMax * 1) + ' Droplets';
-        if (shopRecPriceEl) shopRecPriceEl.textContent = '💧 ' + (unitRec * 1) + ' Droplets';
+        if (shopMaxPriceEl) shopMaxPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (unitMax * 1) + ' Droplets';
+        if (shopRecPriceEl) shopRecPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (unitRec * 1) + ' Droplets';
         const maxNameEl = document.getElementById('shop-max-name');
-        if (maxNameEl) maxNameEl.textContent = t('shop.maxTitle');
+        if (maxNameEl) maxNameEl.textContent = '+5 Max. Charges';
         const recNameEl = document.getElementById('shop-rec-name');
-        if (recNameEl) recNameEl.textContent = t('shop.recTitle');
+        if (recNameEl) recNameEl.textContent = '+30 Paint Charges';
     } catch { }
     // set account-specific premium colors bitmap for filtering
     try { shopExtraColorsBitmap = Number(row && row.extraColorsBitmap != null ? row.extraColorsBitmap : 0) || 0; } catch { shopExtraColorsBitmap = 0; }
@@ -3225,14 +3253,14 @@ function openShopAccount(row) {
                         });
                         const data = await res.json();
                         if (res.ok && data && data.success === true) {
-                            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+                            showToast('Purchase successful', 'success', 2000);
                             try { await refreshAccountById(account.id); } catch { }
                             try {
                                 if (shopDropletsInfo) {
                                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+            shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                                 }
                             } catch { }
                             try {
@@ -3253,11 +3281,11 @@ function openShopAccount(row) {
                                 updatePremiumPaletteSelectionUi();
                             } catch { }
                         } else {
-                            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+                            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
                             showToast(msg, 'error', 2500);
                         }
                     } catch (e) {
-                        showToast(t('messages.purchaseFail'), 'error', 2500);
+                        showToast('Purchase failed', 'error', 2500);
                     }
                 })();
             };
@@ -3271,7 +3299,8 @@ function showAccountList() {
     accountsSection.hidden = false;
     try { if (shopBackBtn) shopBackBtn.hidden = true; } catch { }
     try { if (shopDropletsInfo) shopDropletsInfo.hidden = true; } catch { }
-    try { accountSaveBtn.textContent = t('buttons.add'); } catch { }
+    try { accountSaveBtn.textContent = 'Add'; } catch { }
+    try { if (accountStatusFilterSelect) accountStatusFilterSelect.value = accountStatusFilter || 'all'; } catch { }
 }
 
 // Shop interactions
@@ -3286,14 +3315,14 @@ function parseQty(el) {
 function updatePrice(which) {
     if (which === 'max') {
         const qty = parseQty(shopMaxQtyEl);
-        if (shopMaxPriceEl) shopMaxPriceEl.textContent = '💧 ' + (SHOP_PRICE_MAX * qty) + ' Droplets';
+        if (shopMaxPriceEl) shopMaxPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (SHOP_PRICE_MAX * qty) + ' Droplets';
         try {
             const nameEl = document.getElementById('shop-max-name');
             if (nameEl) nameEl.textContent = '+' + 5 * qty + ' Max. Charges';
         } catch { }
     } else {
         const qty = parseQty(shopRecQtyEl);
-        if (shopRecPriceEl) shopRecPriceEl.textContent = '💧 ' + (SHOP_PRICE_REC * qty) + ' Droplets';
+        if (shopRecPriceEl) shopRecPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (SHOP_PRICE_REC * qty) + ' Droplets';
         try {
             const nameEl = document.getElementById('shop-rec-name');
             if (nameEl) nameEl.textContent = '+' + 30 * qty + ' Paint Charges';
@@ -3389,7 +3418,7 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
         const qty = parseQty(shopMaxQtyEl);
         const account = shopCurrentAccount;
         const token = account && account.token ? String(account.token) : '';
-        if (!token) { showToast(t('messages.accountNotFound'), 'error', 2000); return; }
+        if (!token) { showToast('Account not found', 'error', 2000); return; }
         const res = await fetch('/api/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3397,14 +3426,14 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
         });
         const data = await res.json();
         if (res.ok && data && data.success === true) {
-            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+            showToast('Purchase successful', 'success', 2000);
             try { await refreshAccountById(account.id); } catch { }
             try {
                 if (shopDropletsInfo) {
                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+                    shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                 }
             } catch { }
             // Ensure internal state is refreshed so affordability checks are correct
@@ -3417,11 +3446,11 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
                 updatePrice('max');
             } catch { }
         } else {
-            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
             showToast(msg, 'error', 2500);
         }
     } catch {
-        showToast(t('messages.purchaseFail'), 'error', 2500);
+        showToast('Purchase failed', 'error', 2500);
     }
 });
 if (shopRecDecBtn) shopRecDecBtn.addEventListener('click', () => changeQty('rec', -1));
@@ -3434,7 +3463,7 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
         const qty = parseQty(shopRecQtyEl);
         const account = shopCurrentAccount;
         const token = account && account.token ? String(account.token) : '';
-        if (!token) { showToast(t('messages.accountNotFound'), 'error', 2000); return; }
+        if (!token) { showToast('Account not found', 'error', 2000); return; }
         const res = await fetch('/api/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3442,14 +3471,14 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
         });
         const data = await res.json();
         if (res.ok && data && data.success === true) {
-            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+            showToast('Purchase successful', 'success', 2000);
             try { await refreshAccountById(account.id); } catch { }
             try {
                 if (shopDropletsInfo) {
                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+                    shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                 }
             } catch { }
             // Ensure internal state is refreshed so affordability checks are correct
@@ -3462,11 +3491,11 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
                 updatePrice('rec');
             } catch { }
         } else {
-            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
             showToast(msg, 'error', 2500);
         }
     } catch {
-        showToast(t('messages.purchaseFail'), 'error', 2500);
+        showToast('Purchase failed', 'error', 2500);
     }
 });
 if (addAccountBtn) {
@@ -3526,7 +3555,7 @@ function renderAccountsTable(rows) {
         const tdStatus = document.createElement('td');
         const badge = document.createElement('span');
         badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
-        badge.textContent = isActive ? t('table.statusActive') : t('table.statusPassive');
+        badge.textContent = isActive ? 'Active' : 'Inactive';
         tdStatus.appendChild(badge);
         const tdActions = document.createElement('td');
         const actionsWrap = document.createElement('div');
@@ -3537,27 +3566,39 @@ function renderAccountsTable(rows) {
         rowBottom.className = 'table-actions-row';
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
-        editBtn.className = 'app-btn';
-        editBtn.textContent = t('buttons.edit');
+        editBtn.className = 'app-btn icon-btn';
+        editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+        editBtn.title = 'Edit';
         editBtn.addEventListener('click', () => {
             openEditAccount(row);
         });
         const checkBtn = document.createElement('button');
         checkBtn.type = 'button';
-        checkBtn.className = 'app-btn';
-        checkBtn.textContent = t('buttons.checkPixels');
+        checkBtn.className = 'app-btn icon-btn';
+        checkBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+        checkBtn.title = 'Check';
         checkBtn.addEventListener('click', async () => {
+            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             try {
                 const res = await fetch('/api/accounts/' + row.id + '/refresh', { method: 'POST' });
-                if (!res.ok) return;
+                if (!res.ok) {
+                    showToast('Failed to refresh account', 'error', 3000);
+                    return;
+                }
                 const updated = await res.json();
+                showToast('Account refreshed', 'success', 1800);
                 await loadAccounts();
-            } catch { }
+            } catch {
+                showToast('Failed to refresh account', 'error', 3000);
+            } finally {
+                checkBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+            }
         });
         const shopBtn = document.createElement('button');
         shopBtn.type = 'button';
-        shopBtn.className = 'app-btn';
-        shopBtn.textContent = t('buttons.shop');
+        shopBtn.className = 'app-btn icon-btn';
+        shopBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i>';
+        shopBtn.title = 'Shop';
         try { shopBtn.disabled = !isActive; } catch { }
         shopBtn.addEventListener('click', async () => {
             if (shopBtn.disabled) return;
@@ -3576,13 +3617,21 @@ function renderAccountsTable(rows) {
         });
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
-        delBtn.className = 'app-btn';
-        delBtn.textContent = t('buttons.delete');
+        delBtn.className = 'app-btn icon-btn';
+        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        delBtn.title = 'Delete';
         delBtn.addEventListener('click', async () => {
             try {
-                await fetch('/api/accounts/' + row.id, { method: 'DELETE' });
+                const res = await fetch('/api/accounts/' + row.id, { method: 'DELETE' });
+                if (!res.ok) {
+                    showToast('Failed to delete account', 'error', 3000);
+                    return;
+                }
+                showToast('Account deleted', 'success', 2000);
                 await loadAccounts();
-            } catch { }
+            } catch {
+                showToast('Failed to delete account', 'error', 3000);
+            }
         });
         rowTop.appendChild(editBtn);
         rowTop.appendChild(delBtn);
@@ -3600,11 +3649,11 @@ function renderAccountsTable(rows) {
     });
 
     try {
-        if (Array.isArray(sortedRows) && pixelPowerEl) {
+        if (Array.isArray(filteredRows) && pixelPowerEl) {
             let totalCount = 0;
             let totalMax = 0;
-            for (let i = 0; i < sortedRows.length; i++) {
-                const r = sortedRows[i];
+            for (let i = 0; i < filteredRows.length; i++) {
+                const r = filteredRows[i];
                 const isActive = r && r.active !== false && !!r.token;
                 if (!isActive) continue;
                 const cRaw = Number(r.pixelCount);
@@ -3615,7 +3664,7 @@ function renderAccountsTable(rows) {
                 if (m != null) totalMax += m;
             }
             try { pixelPowerEl.setAttribute('data-count', String(totalCount)); pixelPowerEl.setAttribute('data-max', String(totalMax)); } catch { }
-            pixelPowerEl.textContent = t('pixel.powerLabel', { count: totalCount, max: totalMax });
+            pixelPowerEl.textContent = `Pixel power: ${totalCount} / ${totalMax}`;
             try { checkFullnessNotify(); } catch { }
         }
     } catch { }
@@ -3658,37 +3707,48 @@ if (accountSaveBtn && accountsTbody) {
                     return !sameId && String(row.token || '') === token;
                 });
                 if (dup) {
-                    showToast(t('messages.tokenAlreadyExists'), 'error', 2500);
+                    showToast('This token already exists', 'warning', 3000);
                     return;
                 }
             } catch { }
-            accountSaveBtn.disabled = true;
-            if (id) {
-                const res = await fetch('/api/accounts/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token, proxy })
-                });
-                accountSaveBtn.disabled = res.ok;
-                if (!res.ok) return;
-                await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' }).catch(() => { })
-            } else {
-                const res = await fetch('/api/accounts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token, proxy })
-                });
-                accountSaveBtn.disabled = res.ok;
-                if (!res.ok) return;
-
-                const created = await res.json();
-                if (created && created.id != null) {
-                    await fetch('/api/accounts/' + String(created.id) + '/refresh', { method: 'POST' }).catch(() => { })
+            accountSaveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                if (id) {
+                    const res = await fetch('/api/accounts/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, token, proxy })
+                    });
+                    if (!res.ok) {
+                        showToast('Failed to save account', 'error', 3000);
+                        accountSaveBtn.textContent = 'Save';
+                        return;
+                    }
+                    await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' }).catch(() => { })
+                } else {
+                    const res = await fetch('/api/accounts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, token, proxy })
+                    });
+                    if (!res.ok) {
+                        showToast('Failed to save account', 'error', 3000);
+                        accountSaveBtn.textContent = 'Save';
+                        return;
+                    }
+                    const created = await res.json();
+                    if (created && created.id != null) {
+                        await fetch('/api/accounts/' + String(created.id) + '/refresh', { method: 'POST' }).catch(() => { })
+                    }
                 }
+                showToast('Account saved successfully', 'success', 2500);
+                accountSaveBtn.textContent = 'Add';
+                await loadAccounts();
+                showAccountList();
+            } catch (err) {
+                showToast('Failed to save account', 'error', 3000);
+                accountSaveBtn.textContent = id ? 'Save' : 'Add';
             }
-            accountSaveBtn.disabled = false;
-            await loadAccounts();
-            showAccountList();
         } catch { }
     });
 }
@@ -3699,14 +3759,13 @@ if (accountSearchInput) {
         loadAccounts();
     });
 }
-document.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        accountStatusFilter = btn.dataset.filter;
+const accountStatusFilterSelect = document.getElementById('account-status-filter');
+if (accountStatusFilterSelect) {
+    accountStatusFilterSelect.addEventListener('change', (e) => {
+        accountStatusFilter = e.target.value;
         loadAccounts();
     });
-});
+}
 const sortHeader = document.querySelector('#accounts-table th[data-sort]');
 if (sortHeader) {
     sortHeader.addEventListener('click', () => {
@@ -3730,7 +3789,7 @@ if (checkProxyBtn) {
         const port = proxyPortInput.value.trim();
         if (!host || !port) { showToast('Enter host and port first', 'error'); return; }
         checkProxyBtn.disabled = true;
-        checkProxyBtn.textContent = t('form.checkingProxy') || 'Checking...';
+        checkProxyBtn.textContent = 'Checking...';
         proxyStatusEl.hidden = true;
         try {
             const res = await fetch('/api/check-proxy', {
@@ -3743,17 +3802,17 @@ if (checkProxyBtn) {
                 })
             });
             const data = await res.json();
-            proxyStatusEl.textContent = data.ok
-                ? (t('form.proxyWorking') || '✔ Proxy working')
-                : (t('form.proxyFailed') || '✘ Proxy failed');
+            proxyStatusEl.innerHTML = data.ok
+                ? '<i class="fa-solid fa-check"></i> Proxy working'
+                : '<i class="fa-solid fa-xmark"></i> Proxy failed';
             proxyStatusEl.className = 'proxy-status ' + (data.ok ? 'success' : 'error');
         } catch {
-            proxyStatusEl.textContent = t('form.proxyFailed') || '✘ Proxy failed';
+            proxyStatusEl.innerHTML = '<i class="fa-solid fa-xmark"></i> Proxy failed';
             proxyStatusEl.className = 'proxy-status error';
         }
         proxyStatusEl.hidden = false;
         checkProxyBtn.disabled = false;
-        checkProxyBtn.textContent = t('form.checkProxy') || 'Check proxy';
+        checkProxyBtn.textContent = 'Check proxy';
     });
 }
 let accountTokenInputDebounce = null;
@@ -3775,7 +3834,7 @@ if (accountTokenInput) {
                         return !sameId && String(row.token || '') === token;
                     });
                     if (dup) {
-                        showToast(t('messages.tokenAlreadyExists'), 'error', 2500);
+                        showToast('This token already exists', 'error', 2500);
                         return;
                     }
                 } catch { }
@@ -3840,8 +3899,7 @@ let previewSourceImage = null;
 
 function updateDitherButtonUi() {
     if (!imgDitherToggle) return;
-    const key = imgDitherEnabled ? 'preview.ditheringOn' : 'preview.ditheringOff';
-    imgDitherToggle.textContent = t(key);
+    imgDitherToggle.textContent = imgDitherEnabled ? 'Dithering: ON' : 'Dithering: OFF';
     imgDitherToggle.dataset.state = imgDitherEnabled ? 'on' : 'off';
 }
 
@@ -3980,7 +4038,7 @@ function updateSizeFromScale() {
         const s = Math.min(MAX_DIM / nw, MAX_DIM / nh);
         nw = Math.max(1, Math.round(nw * s));
         nh = Math.max(1, Math.round(nh * s));
-        try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { }
+        try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { }
     }
     imgWidthInput.value = String(nw);
     imgHeightInput.value = String(nh);
@@ -3993,7 +4051,7 @@ function updateHeightFromWidth() {
     if (!imgKeepRatioInput.checked) { drawPreview(); return; }
     const w0 = previewSourceImage.naturalWidth | 0, h0 = previewSourceImage.naturalHeight | 0;
     let nh = Math.round(nw * h0 / w0);
-    if (nh > MAX_DIM) { nh = MAX_DIM; nw = Math.round(nh * w0 / h0); imgWidthInput.value = String(nw); try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+    if (nh > MAX_DIM) { nh = MAX_DIM; nw = Math.round(nh * w0 / h0); imgWidthInput.value = String(nw); try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
     imgHeightInput.value = String(nh);
     const pct = Math.round(nw / w0 * 100);
     imgScaleInput.value = String(pct);
@@ -4012,7 +4070,7 @@ function updateWidthFromHeight() {
     }
     const w0 = previewSourceImage.naturalWidth | 0, h0 = previewSourceImage.naturalHeight | 0;
     let nw = Math.round(nh * w0 / h0);
-    if (nw > MAX_DIM) { nw = MAX_DIM; nh = Math.round(nw * h0 / w0); imgHeightInput.value = String(nh); try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+    if (nw > MAX_DIM) { nw = MAX_DIM; nh = Math.round(nw * h0 / w0); imgHeightInput.value = String(nh); try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
     imgWidthInput.value = String(nw);
     const pct = Math.round(nh / h0 * 100);
     imgScaleInput.value = String(pct);
@@ -4039,7 +4097,7 @@ function buildFillPaletteUi() {
     // Transparent option (none)
     const swNone = document.createElement('div');
     swNone.className = 'palette-swatch modal-palette-swatch transparent selected';
-    swNone.title = t('palette.transparentTitle');
+    swNone.title = 'Transparent';
     swNone.setAttribute('role', 'button');
     swNone.addEventListener('click', () => {
         imgFillColorId = null;
@@ -4105,7 +4163,7 @@ if (imgPreviewApply) imgPreviewApply.addEventListener('click', async () => {
         if (!previewSourceImage) return;
         let targetW = clampDim(parseInt(imgWidthInput.value || '1', 10));
         let targetH = clampDim(parseInt(imgHeightInput.value || '1', 10));
-        if (targetW > MAX_DIM || targetH > MAX_DIM) { try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+        if (targetW > MAX_DIM || targetH > MAX_DIM) { try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
         const off = document.createElement('canvas');
         off.width = targetW; off.height = targetH;
         const octx = off.getContext('2d', { willReadFrequently: true });
@@ -4203,7 +4261,7 @@ const readyAccountList = document.getElementById('ready-account-list');
         if (!autoStart) {
             return;
         }
-        showToast(t('messages.tokenPastedFromExtension'), 'success', 1200);
+        showToast('Token captured from extension', 'success', 1200);
         try {
             const rp = document.getElementById('ready-popup');
             const isOpen = rp && !rp.hidden;
@@ -4232,10 +4290,6 @@ const humanDelayInputs = document.getElementById('human-delay-inputs');
 const humanMinInput = document.getElementById('human-min');
 const humanMaxInput = document.getElementById('human-max');
 
-const selectModeTrack = document.getElementById('select-mode-toggle');
-const selectModeLabelLeft = document.getElementById('select-mode-label-left');
-const selectModeLabelRight = document.getElementById('select-mode-label-right');
-const selectModeLabelColor = document.getElementById('select-mode-label-color');
 let selectMode = 'multi';
 let autoMode = false;
 let autoStart = false;
@@ -4244,10 +4298,11 @@ let humanDelayMin = 30;
 let humanDelayMax = 60;
 
 function updateSelectModeUi() {
-    try { if (selectModeTrack) selectModeTrack.setAttribute('data-mode', selectMode); } catch { }
-    try { if (selectModeLabelLeft) selectModeLabelLeft.classList.toggle('active', selectMode === 'multi'); } catch { }
-    try { if (selectModeLabelRight) selectModeLabelRight.classList.toggle('active', selectMode === 'frame'); } catch { }
-    try { if (selectModeLabelColor) selectModeLabelColor.classList.toggle('active', selectMode === 'color'); } catch { }
+    try {
+        document.querySelectorAll('#draw-mode-group .filter-chip').forEach(b => {
+            b.classList.toggle('active', b.dataset.drawMode === selectMode);
+        });
+    } catch { }
 }
 function setSelectMode(mode) {
     if (mode === 'frame' || mode === 'color') {
@@ -4335,13 +4390,21 @@ if (humanMaxInput) humanMaxInput.addEventListener('change', () => {
     try { localStorage.setItem('ready.humanMax', String(humanDelayMax)); } catch { }
 });
 
-if (selectModeTrack) selectModeTrack.addEventListener('click', () => {
-    const next = selectMode === 'multi' ? 'frame' : (selectMode === 'frame' ? 'color' : 'multi');
-    setSelectMode(next);
+// Draw mode chips
+document.querySelectorAll('#draw-mode-group .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#draw-mode-group .filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (btn.dataset.drawMode === 'multi') {
+            selectMode = 'multi';
+        } else if (btn.dataset.drawMode === 'frame') {
+            selectMode = 'frame';
+        } else if (btn.dataset.drawMode === 'color') {
+            selectMode = 'color';
+        }
+        updateSelectModeUi();
+    });
 });
-if (selectModeLabelLeft) selectModeLabelLeft.addEventListener('click', () => setSelectMode('multi'));
-if (selectModeLabelRight) selectModeLabelRight.addEventListener('click', () => setSelectMode('frame'));
-if (selectModeLabelColor) selectModeLabelColor.addEventListener('click', () => setSelectMode('color'));
 
 function getAccountById(id) {
     const idStr = String(id);
@@ -4377,7 +4440,7 @@ function updateReadySelectionLabel() {
     const limit = Math.max(0, Number(getReadySelectionLimit()) || 0);
     const count = selected;
     try { readyPixelEl.setAttribute('data-count', String(count)); readyPixelEl.setAttribute('data-max', String(limit)); } catch { }
-    readyPixelEl.textContent = t('pixel.powerLabel', { count, max: limit });
+    readyPixelEl.textContent = `Pixel power: ${count} / ${limit}`;
     try { updateAutoSelectButtonLabel(); } catch { }
 }
 
@@ -4388,7 +4451,7 @@ function updateAutoSelectButtonLabel() {
     const shouldDelete = (limit > 0 && selected >= limit);
     autoSelectDeleteMode = !!shouldDelete;
     try {
-        autoSelectBtn.textContent = shouldDelete ? t('ready.deleteAllSelected') : t('ready.autoSelect');
+        autoSelectBtn.textContent = shouldDelete ? 'Delete all selected' : 'Auto select';
     } catch {
         autoSelectBtn.textContent = shouldDelete ? 'Delete all selected' : 'Auto select';
     }
@@ -4423,7 +4486,7 @@ function renderReadyAccountList() {
         btn.type = 'button';
         btn.className = 'app-btn';
         const isSelected = readySelectedAccountIds.indexOf(row.id) !== -1;
-        btn.textContent = (isSelected ? '✓ ' : '') + (row.name || t('ready.accountLabelDefault')) + ' — ' + String(count) + ' / ' + String(max);
+        btn.textContent = (isSelected ? '✓ ' : '') + (row.name || 'Account') + ' — ' + String(count) + ' / ' + String(max);
         btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
         btn.addEventListener('click', () => {
             const isSelectedNow = readySelectedAccountIds.indexOf(row.id) !== -1;
@@ -4641,7 +4704,7 @@ if (autoSelectBtn) {
         try { updatePaletteSelectionUi(); } catch { }
 
         if (!Array.isArray(readySelectedAccountIds) || readySelectedAccountIds.length === 0) {
-            showToast(t('messages.selectAccountFirst'), 'error', 2000);
+            showToast('Please select an account first', 'error', 2000);
             return;
         }
 
@@ -4874,12 +4937,12 @@ if (startBtn) {
         const hasAccounts = getSelectedAccountsSortedByCapacityDesc().length > 0;
         const hasAnyPixel = readyGlobalMode ? (readyGlobalSelected.size > 0) : (getReadySelectedCount() > 0);
         if (!(hasAccounts && hasAnyPixel)) {
-            showToast(t('messages.startRequirementsMissing'), 'error', 2500);
+            showToast('Select account and pixels first', 'error', 2500);
             try { updateStartEnabled(); } catch { }
             return;
         }
         const sel = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
-        if (!readyGlobalMode && !sel) { showToast(t('messages.noSelectedImage'), 'error', 2000); return; }
+        if (!readyGlobalMode && !sel) { showToast('No selected image', 'error', 2000); return; }
         const data = buildSelectedExportForItem(sel);
 
         // Her durumda (tek tile veya değil) pikselleri world koordinata göre area/no bazında gruplandır
@@ -4935,12 +4998,18 @@ if (startBtn) {
                         if (take <= 0) continue;
                         const colorsSlice = g.colors.slice(offset, offset + take);
                         const coordsSlice = g.coords.slice(offset * 2, (offset + take) * 2);
+                        const xSlice = [];
+                        const ySlice = [];
+                        for (let i = 0; i < coordsSlice.length; i += 2) {
+                            xSlice.push(coordsSlice[i]);
+                            ySlice.push(coordsSlice[i + 1]);
+                        }
                         startBtn.disabled = true
-                        const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, String(acc.token || ''));
+                        const r = await postBatch(String(g.area), String(g.no), colorsSlice, xSlice, ySlice, String(acc.token || ''));
                         startBtn.disabled = false
                         if (r && r.status === 429) {
                             hadRequestError = true;
-                            try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
+                            try { showToast('Invalid cf_clearance token', 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
                             break;
                         }
                         if (!r.ok) {
@@ -4949,7 +5018,7 @@ if (startBtn) {
                                 continue;
                             } else {
                                 hadRequestError = true;
-                                showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || t('messages.errorGeneric')), 'error', 3000);
+                                showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || 'An error occurred'), 'error', 3000);
                                 break;
                             }
                         } else {
@@ -4963,7 +5032,7 @@ if (startBtn) {
                     if (offset < total && !hadRequestError) missingTotal += (total - offset);
                 }
                 if (paintedAny) {
-                    showToast(t('messages.painted'), 'success', 1800);
+                    showToast('Painted', 'success', 1800);
                     try { clearAllReadySelections(); } catch { }
                     try { readyGlobalMode = false; } catch { }
                     if (!autoMode) {
@@ -4972,7 +5041,7 @@ if (startBtn) {
                     try { updateStartEnabled(); } catch { }
                 }
                 if (missingTotal > 0) {
-                    showToast(t('messages.insufficientPixelPower', { n: missingTotal }), 'error', 3000);
+                    showToast(`Insufficient pixel power: ${missingTotal} pixels left`, 'error', 3000);
                 }
                 try { await loadAccounts(); } catch { }
                 try { updateReadySelectionLabel(); } catch { }
@@ -4983,13 +5052,12 @@ if (startBtn) {
                         await loadAccounts();
                         try { renderReadyAccountList(); } catch { }
                         updateReadyPixelForSelectedAccounts();
-                        const nextId = pickNextBestAccountId(usedIds);
+                        const nextId = pickNextBestAccountId();
                         if (nextId != null) {
                             readySelectedAccountIds = [nextId];
                             try { renderReadyAccountList(); } catch { }
                             updateReadyPixelForSelectedAccounts();
                             try { await new Promise(resolve => setTimeout(resolve, didReload ? 50 : 300)); } catch { }
-                            if (autoSelectBtn) { autoSelectDeleteMode = false; autoSelectBtn.click(); }
 
                             if (autoStart) {
                                 let delay = 500;
@@ -5005,11 +5073,11 @@ if (startBtn) {
                                 
                                 // Initial update
                                 const initialRem = Math.max(0, Math.ceil(delay / 1000));
-                                if (cdEl && humanDelayEnabled) cdEl.textContent = `(${initialRem}s)`;
+                                if (cdEl) cdEl.textContent = `(${initialRem}s)`;
 
                                 window._autoStartTimer = setInterval(() => {
                                     const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-                                    if (cdEl && humanDelayEnabled) cdEl.textContent = `(${remaining}s)`;
+                                    if (cdEl) cdEl.textContent = `(${remaining}s)`;
 
                                     if (Date.now() >= endTime) {
                                         clearInterval(window._autoStartTimer);
@@ -5029,6 +5097,8 @@ if (startBtn) {
                                     }
                                 }, 100);
                             }
+                        } else {
+                            try { showToast('Auto mode: no account with pixel power available', 'warning', 3000); } catch { }
                         }
                     } catch { }
                 }
@@ -5101,7 +5171,7 @@ function showMaxReachedToastOnceForSpace(limit) {
         if (spacePaintLimitWarned) return;
         spacePaintLimitWarned = true;
     }
-    showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+    showToast(`Max ${limit} pixels allowed`, 'error', 2000);
 }
 
 function maybeAddSelectionAtHover() {
@@ -5112,9 +5182,9 @@ function maybeAddSelectionAtHover() {
         const hasAccounts = Array.isArray(readySelectedAccountIds) && readySelectedAccountIds.length > 0;
         if (!hasAccounts) {
             if (spacePaintHeld) {
-                if (!spacePaintAccountWarned) { showToast(t('messages.selectAccountFirst'), 'error', 2000); spacePaintAccountWarned = true; }
+                if (!spacePaintAccountWarned) { showToast('Please select an account first', 'error', 2000); spacePaintAccountWarned = true; }
             } else {
-                showToast(t('messages.selectAccountFirst'), 'error', 2000);
+                showToast('Please select an account first', 'error', 2000);
             }
             return false;
         }
@@ -5322,6 +5392,30 @@ if (paletteModeEl && paletteModeToggle && paletteModeLabelLeft && paletteModeLab
     paletteModeToggle.addEventListener('click', () => setMode(paletteMode === 'premium' ? 'free' : 'premium'));
     paletteModeLabelLeft.addEventListener('click', () => setMode('premium'));
     paletteModeLabelRight.addEventListener('click', () => setMode('free'));
+    // Regenerate FP button event listener
+    if (btnRegenerateFp) {
+        btnRegenerateFp.addEventListener('click', async () => {
+            const id = btnRegenerateFp.dataset.accountId;
+            if (!id) return;
+            btnRegenerateFp.disabled = true;
+            btnRegenerateFp.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Regenerate';
+            try {
+                const res = await fetch('/api/accounts/' + id + '/regenerate-fp', { method: 'POST' });
+                if (!res.ok) {
+                    showToast('Failed to regenerate FP', 'error', 3000);
+                    return;
+                }
+                const updated = await res.json();
+                showToast('FP regenerated', 'success', 1800);
+                await loadAccounts();
+            } catch {
+                showToast('Failed to regenerate FP', 'error', 3000);
+            } finally {
+                btnRegenerateFp.disabled = false;
+                btnRegenerateFp.innerHTML = '<i class="fa-solid fa-fingerprint"></i> Regenerate';
+            }
+        });
+    }
     // Always start with Transparent selected (no cache)
     try { localStorage.removeItem('palette.selectedColorId'); } catch { }
     selectedOverrideColorId = null;
