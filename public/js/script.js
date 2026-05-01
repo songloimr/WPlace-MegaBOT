@@ -5052,13 +5052,12 @@ if (startBtn) {
                         await loadAccounts();
                         try { renderReadyAccountList(); } catch { }
                         updateReadyPixelForSelectedAccounts();
-                        const nextId = pickNextBestAccountId(usedIds);
+                        const nextId = pickNextBestAccountId();
                         if (nextId != null) {
                             readySelectedAccountIds = [nextId];
                             try { renderReadyAccountList(); } catch { }
                             updateReadyPixelForSelectedAccounts();
                             try { await new Promise(resolve => setTimeout(resolve, didReload ? 50 : 300)); } catch { }
-                            if (autoSelectBtn) { autoSelectDeleteMode = false; autoSelectBtn.click(); }
 
                             if (autoStart) {
                                 let delay = 500;
@@ -5098,6 +5097,8 @@ if (startBtn) {
                                     }
                                 }, 100);
                             }
+                        } else {
+                            try { showToast('Auto mode: no account with pixel power available', 'warning', 3000); } catch { }
                         }
                     } catch { }
                 }
