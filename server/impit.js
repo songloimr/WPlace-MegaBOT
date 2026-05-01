@@ -3,7 +3,9 @@ const { Impit } = require('impit');
 function createImpit(impitOptions = {}) {
   const opts = { ...impitOptions };
   if (opts.proxyUrl) {
-    opts.proxyUrl = 'http://' + opts.proxyUrl;
+    if (!opts.proxyUrl.startsWith('http://') && !opts.proxyUrl.startsWith('https://')) {
+      opts.proxyUrl = 'http://' + opts.proxyUrl;
+    }
   }
   return new Impit({
     browser: 'chrome',

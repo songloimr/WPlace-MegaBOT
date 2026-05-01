@@ -1842,6 +1842,13 @@ body.no-scroll {
     width: 100%;
 }
 
+/* Proxy hint */
+.proxy-hint {
+    font-size: 11px;
+    color: #565f89;
+    margin: 2px 0 4px;
+}
+
 /* Optional label */
 .optional-label {
     font-size: 11px;
@@ -1854,6 +1861,33 @@ body.no-scroll {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+/* Regenerate FP button in account form */
+#btn-regenerate-fp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: rgba(122, 162, 247, 0.15);
+    border: 1px solid rgba(122, 162, 247, 0.3);
+    color: #7aa2f7;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+#btn-regenerate-fp:hover {
+    background: rgba(122, 162, 247, 0.25);
+}
+#btn-regenerate-fp:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+#fp-label {
+    font-size: 13px;
+    color: #c0caf5;
+    margin-bottom: 2px;
 }
 
 /* Proxy status */

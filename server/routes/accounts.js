@@ -108,11 +108,11 @@ function registerAccountRoutes(app) {
       const existing = accounts.find(a => a && typeof a.token === 'string' && a.token === token);
       if (existing) return res.status(409).json({ error: 'account already exists' });
 
-      const response = await fetchMe({ token });
+      const response = await fetchMe({ token, proxy });
       if (!response || !response.charges) return res.status(400).json({ error: 'invalid token' });
 
       const account = {
-        fp: crypto.createHash('md5').update(token).digest('hex'),
+        fp: crypto.createHash('md5').update(crypto.randomBytes(32)).digest('hex'),
         name: name || response.name,
         token,
         id: response.id,
@@ -177,6 +177,20 @@ function registerAccountRoutes(app) {
       res.status(500).json({ error: 'refresh failed', message: e.message });
     }
   });
+  app.post('/api/accounts/:id/regenerate-fp', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accounts = readJson(ACCOUNTS_FILE, []);
+      const idx = accounts.findIndex(a => a && a.id == id);
+      if (idx < 0) return res.status(404).json({ error: 'not found' });
+      accounts[idx].fp = crypto.createHash('md5').update(crypto.randomBytes(32)).digest('hex');
+      writeJson(ACCOUNTS_FILE, accounts);
+      res.status(200).json(accounts[idx]);
+    } catch (e) {
+      res.status(500).json({ error: 'regenerate fp failed', message: e.message });
+    }
+  });
+
   app.post('/api/check-proxy', async (req, res) => {
     try {
       const { user, password, host, port } = req.body;
@@ -190,12 +204,12 @@ function registerAccountRoutes(app) {
         proxyUrl: proxyStr,
         timeout: 15_000
       });
-      const checkRes = await impit.fetch('http://httpbin.org/ip');
+      const checkRes = await impit.fetch('https://api64.ipify.org?format=json');
       if (!checkRes.ok) {
         return res.json({ ok: false, error: 'proxy returned status ' + checkRes.status });
       }
       const data = await checkRes.json();
-      res.json({ ok: true, ip: data.origin });
+      res.json({ ok: true, ip: data.ip });
     } catch (e) {
       res.status(200).json({ ok: false, error: e.message });
     }

@@ -5,7 +5,9 @@ const ACCOUNTS_FILE = path.join(DB_DIR, 'accounts.json');
 const SETTINGS_FILE = path.join(DB_DIR, 'settings.json');
 const FAVORITES_FILE = path.join(DB_DIR, 'favorites.json');
 
-const PROXY_REGEX = /^([a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@)?[0-9\.]+:[0-9]+$/;
+// Supports: user:pass@host:port, host:port
+// host can be IPv4, IPv6 ([::1]), or domain
+const PROXY_REGEX = /^([a-zA-Z0-9\_]+:[a-zA-Z0-9\_]+@)?(\[[0-9a-fA-F:]+\]|[0-9]{1,3}(?:\.[0-9]{1,3}){3}|[a-zA-Z0-9.-]+):[0-9]+$/;
 
 let DEBUG = !!(process.env.DEBUG_HTTP && String(process.env.DEBUG_HTTP) !== '0');
 let DEBUG_MASK = !(process.env.DEBUG_MASK === '0' || process.env.DEBUG_MASK === 'false');

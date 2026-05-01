@@ -797,6 +797,8 @@ const checkAllBtn = document.getElementById('btn-check-all');
 const accountNameInput = document.getElementById('account-name-input');
 const accountTokenInput = document.getElementById('account-token-input');
 const accountIdInput = document.getElementById('account-id-input');
+const fpLabel = document.getElementById('fp-label');
+const btnRegenerateFp = document.getElementById('btn-regenerate-fp');
 const accountCancelBtn = document.getElementById('btn-account-cancel');
 const accountSaveBtn = document.getElementById('btn-account-save');
 const proxyUserInput = document.getElementById('proxy-user');
@@ -2850,13 +2852,48 @@ function showAccountForm() {
         proxyPassInput.value = '';
         proxyHostInput.value = '';
         proxyPortInput.value = '';
+        if (fpLabel) fpLabel.hidden = true;
+        if (btnRegenerateFp) btnRegenerateFp.hidden = true;
         accountNameInput.focus();
     } catch { }
     try {
-        accountSaveBtn.textContent = t('buttons.add');
+        accountSaveBtn.textContent = 'Add';
         proxyStatusEl.hidden = true;
+        if (accountStatusFilterSelect) accountStatusFilterSelect.value = accountStatusFilter || 'all';
     } catch { }
 }
+function parseProxyString(proxy) {
+    let user = '', pass = '', host = '', port = '';
+    if (!proxy) return { user, pass, host, port };
+    let rest = proxy;
+    const atIdx = rest.lastIndexOf('@');
+    if (atIdx >= 0) {
+        const up = rest.slice(0, atIdx);
+        rest = rest.slice(atIdx + 1);
+        const colonIdx = up.indexOf(':');
+        if (colonIdx >= 0) {
+            user = up.slice(0, colonIdx);
+            pass = up.slice(colonIdx + 1);
+        } else {
+            user = up;
+        }
+    }
+    const ipv6Match = rest.match(/^(\[[^\]]+\]):(\d+)$/);
+    if (ipv6Match) {
+        host = ipv6Match[1];
+        port = ipv6Match[2];
+    } else {
+        const lastColon = rest.lastIndexOf(':');
+        if (lastColon >= 0) {
+            host = rest.slice(0, lastColon);
+            port = rest.slice(lastColon + 1);
+        } else {
+            host = rest;
+        }
+    }
+    return { user, pass, host, port };
+}
+
 function openEditAccount(row) {
     if (!row) return;
     if (!accountsSection || !accountFormSection) return;
@@ -2866,24 +2903,21 @@ function openEditAccount(row) {
         accountNameInput.value = row.name || '';
         accountTokenInput.value = row.token || '';
         accountIdInput.value = String(row.id || '');
-        const proxy = row.proxy || '';
-        const atIdx = proxy.lastIndexOf('@');
-        let userpass = '', hostport = proxy;
-        if (atIdx >= 0) {
-            userpass = proxy.slice(0, atIdx);
-            hostport = proxy.slice(atIdx + 1);
-        }
-        const colonIdx = userpass.indexOf(':');
-        proxyUserInput.value = colonIdx >= 0 ? userpass.slice(0, colonIdx) : '';
-        proxyPassInput.value = colonIdx >= 0 ? userpass.slice(colonIdx + 1) : '';
-        const hpColon = hostport.lastIndexOf(':');
-        proxyHostInput.value = hpColon >= 0 ? hostport.slice(0, hpColon) : hostport;
-        proxyPortInput.value = hpColon >= 0 ? hostport.slice(hpColon + 1) : '';
+        const p = parseProxyString(row.proxy || '');
+        proxyUserInput.value = p.user;
+        proxyPassInput.value = p.pass;
+        proxyHostInput.value = p.host;
+        proxyPortInput.value = p.port;
         proxyStatusEl.hidden = true;
+        if (fpLabel) fpLabel.hidden = false;
+        if (btnRegenerateFp) {
+            btnRegenerateFp.hidden = false;
+            btnRegenerateFp.dataset.accountId = String(row.id || '');
+        }
         accountNameInput.focus();
     } catch { }
 
-    try { accountSaveBtn.textContent = t('buttons.save'); } catch { }
+    try { accountSaveBtn.textContent = 'Save'; } catch { }
 }
 // Only allow premium colors with id > 32
 
@@ -3730,7 +3764,7 @@ if (checkProxyBtn) {
         const port = proxyPortInput.value.trim();
         if (!host || !port) { showToast('Enter host and port first', 'error'); return; }
         checkProxyBtn.disabled = true;
-        checkProxyBtn.textContent = t('form.checkingProxy') || 'Checking...';
+        checkProxyBtn.textContent = 'Checking...';
         proxyStatusEl.hidden = true;
         try {
             const res = await fetch('/api/check-proxy', {
@@ -3743,17 +3777,17 @@ if (checkProxyBtn) {
                 })
             });
             const data = await res.json();
-            proxyStatusEl.textContent = data.ok
-                ? (t('form.proxyWorking') || '✔ Proxy working')
-                : (t('form.proxyFailed') || '✘ Proxy failed');
+            proxyStatusEl.innerHTML = data.ok
+                ? '<i class="fa-solid fa-check"></i> Proxy working'
+                : '<i class="fa-solid fa-xmark"></i> Proxy failed';
             proxyStatusEl.className = 'proxy-status ' + (data.ok ? 'success' : 'error');
         } catch {
-            proxyStatusEl.textContent = t('form.proxyFailed') || '✘ Proxy failed';
+            proxyStatusEl.innerHTML = '<i class="fa-solid fa-xmark"></i> Proxy failed';
             proxyStatusEl.className = 'proxy-status error';
         }
         proxyStatusEl.hidden = false;
         checkProxyBtn.disabled = false;
-        checkProxyBtn.textContent = t('form.checkProxy') || 'Check proxy';
+        checkProxyBtn.textContent = 'Check proxy';
     });
 }
 let accountTokenInputDebounce = null;
@@ -5328,6 +5362,30 @@ if (paletteModeEl && paletteModeToggle && paletteModeLabelLeft && paletteModeLab
     paletteModeToggle.addEventListener('click', () => setMode(paletteMode === 'premium' ? 'free' : 'premium'));
     paletteModeLabelLeft.addEventListener('click', () => setMode('premium'));
     paletteModeLabelRight.addEventListener('click', () => setMode('free'));
+    // Regenerate FP button event listener
+    if (btnRegenerateFp) {
+        btnRegenerateFp.addEventListener('click', async () => {
+            const id = btnRegenerateFp.dataset.accountId;
+            if (!id) return;
+            btnRegenerateFp.disabled = true;
+            btnRegenerateFp.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Regenerate';
+            try {
+                const res = await fetch('/api/accounts/' + id + '/regenerate-fp', { method: 'POST' });
+                if (!res.ok) {
+                    showToast('Failed to regenerate FP', 'error', 3000);
+                    return;
+                }
+                const updated = await res.json();
+                showToast('FP regenerated', 'success', 1800);
+                await loadAccounts();
+            } catch {
+                showToast('Failed to regenerate FP', 'error', 3000);
+            } finally {
+                btnRegenerateFp.disabled = false;
+                btnRegenerateFp.innerHTML = '<i class="fa-solid fa-fingerprint"></i> Regenerate';
+            }
+        });
+    }
     // Always start with Transparent selected (no cache)
     try { localStorage.removeItem('palette.selectedColorId'); } catch { }
     selectedOverrideColorId = null;
