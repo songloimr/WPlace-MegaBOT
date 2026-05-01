@@ -66,14 +66,14 @@ async function refreshAllAccounts() {
 
 
 
-async function postBatch(area, no, colors, coords, jToken) {
+async function postBatch(area, no, colors, x, y, jToken) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PAINT_REQUEST_TIMEOUT_MS);
     try {
         const res = await fetch('/api/pixel/' + encodeURIComponent(area) + '/' + encodeURIComponent(no), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ colors, coords, j: jToken }),
+            body: JSON.stringify({ colors, x, y, j: jToken }),
             signal: controller.signal
         });
         clearTimeout(timeoutId);

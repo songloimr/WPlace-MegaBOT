@@ -13,7 +13,7 @@ const { registerFavoriteRoutes } = require('./routes/favorites');
 async function startServer(port, host) {
   ensureDb();
   const { startBrowser } = require('../browser');
-  const { paint, openPage } = await startBrowser();
+  const { openPage, getHeaders } = await startBrowser();
   const app = express();
 
   app.use(cors());
@@ -31,7 +31,7 @@ async function startServer(port, host) {
   registerEventRoutes(app);
   registerAccountRoutes(app);
   setupPurchaseAPI(app);
-  registerPixelRoutes(app, { paint });
+  registerPixelRoutes(app, getHeaders);
   registerFavoriteRoutes(app);
 
   app.head('/api/captcha-ready', (req, res) => {

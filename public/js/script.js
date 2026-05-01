@@ -4935,12 +4935,18 @@ if (startBtn) {
                         if (take <= 0) continue;
                         const colorsSlice = g.colors.slice(offset, offset + take);
                         const coordsSlice = g.coords.slice(offset * 2, (offset + take) * 2);
+                        const xSlice = [];
+                        const ySlice = [];
+                        for (let i = 0; i < coordsSlice.length; i += 2) {
+                            xSlice.push(coordsSlice[i]);
+                            ySlice.push(coordsSlice[i + 1]);
+                        }
                         startBtn.disabled = true
-                        const r = await postBatch(String(g.area), String(g.no), colorsSlice, coordsSlice, String(acc.token || ''));
+                        const r = await postBatch(String(g.area), String(g.no), colorsSlice, xSlice, ySlice, String(acc.token || ''));
                         startBtn.disabled = false
                         if (r && r.status === 429) {
                             hadRequestError = true;
-                            try { showToast(t('messages.cfClearanceChange'), 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
+                            try { showToast('Invalid cf_clearance token', 'error', 3500); } catch { showToast('Please change cf_clearance.', 'error', 3500); }
                             break;
                         }
                         if (!r.ok) {
