@@ -5073,11 +5073,11 @@ if (startBtn) {
                                 
                                 // Initial update
                                 const initialRem = Math.max(0, Math.ceil(delay / 1000));
-                                if (cdEl && humanDelayEnabled) cdEl.textContent = `(${initialRem}s)`;
+                                if (cdEl) cdEl.textContent = `(${initialRem}s)`;
 
                                 window._autoStartTimer = setInterval(() => {
                                     const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-                                    if (cdEl && humanDelayEnabled) cdEl.textContent = `(${remaining}s)`;
+                                    if (cdEl) cdEl.textContent = `(${remaining}s)`;
 
                                     if (Date.now() >= endTime) {
                                         clearInterval(window._autoStartTimer);
