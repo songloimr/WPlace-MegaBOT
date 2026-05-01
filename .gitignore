@@ -7,3 +7,5 @@ userdata
 .trae
 AGENTS.md
 package-lock.json
+
+.playwright-mcp/
