@@ -3299,7 +3299,8 @@ function showAccountList() {
     accountsSection.hidden = false;
     try { if (shopBackBtn) shopBackBtn.hidden = true; } catch { }
     try { if (shopDropletsInfo) shopDropletsInfo.hidden = true; } catch { }
-    try { accountSaveBtn.textContent = t('buttons.add'); } catch { }
+    try { accountSaveBtn.textContent = 'Add'; } catch { }
+    try { if (accountStatusFilterSelect) accountStatusFilterSelect.value = accountStatusFilter || 'all'; } catch { }
 }
 
 // Shop interactions
@@ -3554,7 +3555,7 @@ function renderAccountsTable(rows) {
         const tdStatus = document.createElement('td');
         const badge = document.createElement('span');
         badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
-        badge.textContent = isActive ? t('table.statusActive') : t('table.statusPassive');
+        badge.textContent = isActive ? 'Active' : 'Inactive';
         tdStatus.appendChild(badge);
         const tdActions = document.createElement('td');
         const actionsWrap = document.createElement('div');
@@ -3565,27 +3566,39 @@ function renderAccountsTable(rows) {
         rowBottom.className = 'table-actions-row';
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
-        editBtn.className = 'app-btn';
-        editBtn.textContent = t('buttons.edit');
+        editBtn.className = 'app-btn icon-btn';
+        editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+        editBtn.title = 'Edit';
         editBtn.addEventListener('click', () => {
             openEditAccount(row);
         });
         const checkBtn = document.createElement('button');
         checkBtn.type = 'button';
-        checkBtn.className = 'app-btn';
-        checkBtn.textContent = t('buttons.checkPixels');
+        checkBtn.className = 'app-btn icon-btn';
+        checkBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+        checkBtn.title = 'Check';
         checkBtn.addEventListener('click', async () => {
+            checkBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             try {
                 const res = await fetch('/api/accounts/' + row.id + '/refresh', { method: 'POST' });
-                if (!res.ok) return;
+                if (!res.ok) {
+                    showToast('Failed to refresh account', 'error', 3000);
+                    return;
+                }
                 const updated = await res.json();
+                showToast('Account refreshed', 'success', 1800);
                 await loadAccounts();
-            } catch { }
+            } catch {
+                showToast('Failed to refresh account', 'error', 3000);
+            } finally {
+                checkBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+            }
         });
         const shopBtn = document.createElement('button');
         shopBtn.type = 'button';
-        shopBtn.className = 'app-btn';
-        shopBtn.textContent = t('buttons.shop');
+        shopBtn.className = 'app-btn icon-btn';
+        shopBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i>';
+        shopBtn.title = 'Shop';
         try { shopBtn.disabled = !isActive; } catch { }
         shopBtn.addEventListener('click', async () => {
             if (shopBtn.disabled) return;
@@ -3604,13 +3617,21 @@ function renderAccountsTable(rows) {
         });
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
-        delBtn.className = 'app-btn';
-        delBtn.textContent = t('buttons.delete');
+        delBtn.className = 'app-btn icon-btn';
+        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        delBtn.title = 'Delete';
         delBtn.addEventListener('click', async () => {
             try {
-                await fetch('/api/accounts/' + row.id, { method: 'DELETE' });
+                const res = await fetch('/api/accounts/' + row.id, { method: 'DELETE' });
+                if (!res.ok) {
+                    showToast('Failed to delete account', 'error', 3000);
+                    return;
+                }
+                showToast('Account deleted', 'success', 2000);
                 await loadAccounts();
-            } catch { }
+            } catch {
+                showToast('Failed to delete account', 'error', 3000);
+            }
         });
         rowTop.appendChild(editBtn);
         rowTop.appendChild(delBtn);
@@ -3686,37 +3707,48 @@ if (accountSaveBtn && accountsTbody) {
                     return !sameId && String(row.token || '') === token;
                 });
                 if (dup) {
-                    showToast(t('messages.tokenAlreadyExists'), 'error', 2500);
+                    showToast('This token already exists', 'warning', 3000);
                     return;
                 }
             } catch { }
-            accountSaveBtn.disabled = true;
-            if (id) {
-                const res = await fetch('/api/accounts/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token, proxy })
-                });
-                accountSaveBtn.disabled = res.ok;
-                if (!res.ok) return;
-                await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' }).catch(() => { })
-            } else {
-                const res = await fetch('/api/accounts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, token, proxy })
-                });
-                accountSaveBtn.disabled = res.ok;
-                if (!res.ok) return;
-
-                const created = await res.json();
-                if (created && created.id != null) {
-                    await fetch('/api/accounts/' + String(created.id) + '/refresh', { method: 'POST' }).catch(() => { })
+            accountSaveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                if (id) {
+                    const res = await fetch('/api/accounts/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, token, proxy })
+                    });
+                    if (!res.ok) {
+                        showToast('Failed to save account', 'error', 3000);
+                        accountSaveBtn.textContent = 'Save';
+                        return;
+                    }
+                    await fetch('/api/accounts/' + id + '/refresh', { method: 'POST' }).catch(() => { })
+                } else {
+                    const res = await fetch('/api/accounts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, token, proxy })
+                    });
+                    if (!res.ok) {
+                        showToast('Failed to save account', 'error', 3000);
+                        accountSaveBtn.textContent = 'Save';
+                        return;
+                    }
+                    const created = await res.json();
+                    if (created && created.id != null) {
+                        await fetch('/api/accounts/' + String(created.id) + '/refresh', { method: 'POST' }).catch(() => { })
+                    }
                 }
+                showToast('Account saved successfully', 'success', 2500);
+                accountSaveBtn.textContent = 'Add';
+                await loadAccounts();
+                showAccountList();
+            } catch (err) {
+                showToast('Failed to save account', 'error', 3000);
+                accountSaveBtn.textContent = id ? 'Save' : 'Add';
             }
-            accountSaveBtn.disabled = false;
-            await loadAccounts();
-            showAccountList();
         } catch { }
     });
 }
@@ -3727,14 +3759,13 @@ if (accountSearchInput) {
         loadAccounts();
     });
 }
-document.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        accountStatusFilter = btn.dataset.filter;
+const accountStatusFilterSelect = document.getElementById('account-status-filter');
+if (accountStatusFilterSelect) {
+    accountStatusFilterSelect.addEventListener('change', (e) => {
+        accountStatusFilter = e.target.value;
         loadAccounts();
     });
-});
+}
 const sortHeader = document.querySelector('#accounts-table th[data-sort]');
 if (sortHeader) {
     sortHeader.addEventListener('click', () => {
@@ -4259,10 +4290,6 @@ const humanDelayInputs = document.getElementById('human-delay-inputs');
 const humanMinInput = document.getElementById('human-min');
 const humanMaxInput = document.getElementById('human-max');
 
-const selectModeTrack = document.getElementById('select-mode-toggle');
-const selectModeLabelLeft = document.getElementById('select-mode-label-left');
-const selectModeLabelRight = document.getElementById('select-mode-label-right');
-const selectModeLabelColor = document.getElementById('select-mode-label-color');
 let selectMode = 'multi';
 let autoMode = false;
 let autoStart = false;
@@ -4271,10 +4298,11 @@ let humanDelayMin = 30;
 let humanDelayMax = 60;
 
 function updateSelectModeUi() {
-    try { if (selectModeTrack) selectModeTrack.setAttribute('data-mode', selectMode); } catch { }
-    try { if (selectModeLabelLeft) selectModeLabelLeft.classList.toggle('active', selectMode === 'multi'); } catch { }
-    try { if (selectModeLabelRight) selectModeLabelRight.classList.toggle('active', selectMode === 'frame'); } catch { }
-    try { if (selectModeLabelColor) selectModeLabelColor.classList.toggle('active', selectMode === 'color'); } catch { }
+    try {
+        document.querySelectorAll('#draw-mode-group .filter-chip').forEach(b => {
+            b.classList.toggle('active', b.dataset.drawMode === selectMode);
+        });
+    } catch { }
 }
 function setSelectMode(mode) {
     if (mode === 'frame' || mode === 'color') {
@@ -4362,13 +4390,21 @@ if (humanMaxInput) humanMaxInput.addEventListener('change', () => {
     try { localStorage.setItem('ready.humanMax', String(humanDelayMax)); } catch { }
 });
 
-if (selectModeTrack) selectModeTrack.addEventListener('click', () => {
-    const next = selectMode === 'multi' ? 'frame' : (selectMode === 'frame' ? 'color' : 'multi');
-    setSelectMode(next);
+// Draw mode chips
+document.querySelectorAll('#draw-mode-group .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#draw-mode-group .filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (btn.dataset.drawMode === 'multi') {
+            selectMode = 'multi';
+        } else if (btn.dataset.drawMode === 'frame') {
+            selectMode = 'frame';
+        } else if (btn.dataset.drawMode === 'color') {
+            selectMode = 'color';
+        }
+        updateSelectModeUi();
+    });
 });
-if (selectModeLabelLeft) selectModeLabelLeft.addEventListener('click', () => setSelectMode('multi'));
-if (selectModeLabelRight) selectModeLabelRight.addEventListener('click', () => setSelectMode('frame'));
-if (selectModeLabelColor) selectModeLabelColor.addEventListener('click', () => setSelectMode('color'));
 
 function getAccountById(id) {
     const idStr = String(id);
