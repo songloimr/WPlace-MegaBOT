@@ -48,8 +48,8 @@ function renderFavoritesList() {
         const f = favs[i];
         const row = document.createElement('div'); row.className = 'favorite-item';
         const span = document.createElement('span'); span.textContent = f && f.name ? f.name : (f && f.mode === 'single' ? `${f.coords[0].x}, ${f.coords[0].y}` : '');
-        const loadBtn = document.createElement('button'); loadBtn.type = 'button'; loadBtn.className = 'app-btn'; loadBtn.textContent = t('favorites.load') || 'Yükle'; loadBtn.dataset.index = String(i); loadBtn.dataset.action = 'load';
-        const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'app-btn'; delBtn.textContent = t('buttons.delete') || 'Sil'; delBtn.dataset.index = String(i); delBtn.dataset.action = 'delete';
+        const loadBtn = document.createElement('button'); loadBtn.type = 'button'; loadBtn.className = 'app-btn'; loadBtn.textContent = 'Load'; loadBtn.dataset.index = String(i); loadBtn.dataset.action = 'load';
+        const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'app-btn'; delBtn.textContent = 'Delete'; delBtn.dataset.index = String(i); delBtn.dataset.action = 'delete';
         row.appendChild(span); row.appendChild(loadBtn); row.appendChild(delBtn); favoritesListEl.appendChild(row);
     }
 }
@@ -213,11 +213,6 @@ const thumbList = document.getElementById('thumb-list');
 const counter = document.getElementById('counter');
 const accountsBtn = document.getElementById('btn-accounts');
 const pixelPowerEl = document.getElementById('pixel-power');
-const soundToggleBtn = document.getElementById('sound-toggle');
-const soundVolumeEl = document.getElementById('sound-volume');
-const soundVolumeValue = document.getElementById('sound-volume-value');
-
-
 // Movement controls (pixel-by-pixel image movement)
 const movementBtn = document.getElementById('btn-movement');
 const movementPopup = document.getElementById('movement-popup');
@@ -287,7 +282,7 @@ function clampPositionForItem(item, x, y) {
 }
 function moveSelectedBy(dx, dy, step) {
     const it = getSelectedItem();
-    if (!it || !it.image || !it.image.complete) { try { showToast(t('messages.noSelectedImage'), 'error', 1800); } catch { } return; }
+    if (!it || !it.image || !it.image.complete) { try { showToast('No selected image', 'error', 1800); } catch { } return; }
     if (it.locked || it.lockedByReady) { return; }
     const mult = Number.isFinite(step) ? Math.max(1, step | 0) : 1;
     const targetX = (it.worldX || 0) + dx * mult;
@@ -473,13 +468,13 @@ function addThumbForItem(item, index) {
     div.className = 'thumb-item';
     const im = document.createElement('img');
     im.src = item.url;
-    im.alt = item.name || (t('thumb.imageAlt', { n: (index + 1) }));
+    im.alt = item.name || (`Image ${index + 1}`);
     div.appendChild(im);
     const actions = document.createElement('div');
     actions.className = 'thumb-actions';
     const btnLock = document.createElement('button');
     btnLock.className = 'thumb-action lock';
-    btnLock.title = t('thumb.lock');
+    btnLock.title = item.locked ? 'Locked' : 'Unlocked';
     btnLock.textContent = item.locked ? '🔒' : '🔓';
     btnLock.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -500,7 +495,7 @@ function addThumbForItem(item, index) {
     });
     const btnDel = document.createElement('button');
     btnDel.className = 'thumb-action del';
-    btnDel.title = t('buttons.delete');
+    btnDel.title = 'Delete';
     btnDel.textContent = '🗑️';
     btnDel.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -751,7 +746,6 @@ function maybeNotifyFullnessNow() {
     const now = Date.now();
     if (now - lastFullnessNotifyAt >= FULLNESS_NOTIFY_PERIOD_MS - 50) {
         lastFullnessNotifyAt = now;
-        playNotifySound();
     }
 }
 function checkFullnessNotify() {
@@ -1499,7 +1493,7 @@ function setupColorPalette() {
 
     const swT = document.createElement('div');
     swT.className = 'palette-swatch transparent selected';
-    swT.title = t('palette.transparentTitle');
+    swT.title = 'Transparent';
     swT.setAttribute('role', 'button');
     swT.addEventListener('click', () => {
         try {
@@ -1553,7 +1547,7 @@ function setupColorPalette() {
                 const providers = getAccountsProvidingColor(p.id);
                 const remain = getPremiumColorRemainingLimit(p.id);
                 if (!(Array.isArray(providers) && providers.length > 0 && remain > 0)) {
-                    try { showToast(t('messages.premiumColorLimitReached'), 'error', 2000); } catch { }
+                    try { showToast('Premium color limit reached', 'error', 2000); } catch { }
                     return;
                 }
             }
@@ -2306,7 +2300,7 @@ function loadImage(area, no, preserveView = false) {
         } catch { }
     };
     image.onerror = () => {
-        alert(t('messages.imageLoadFailed'));
+        alert('Failed to load image');
     };
     image.src = url;
 }
@@ -2598,7 +2592,7 @@ window.addEventListener('mouseup', (e) => {
         if (readyMouseDownPt && !readyMouseMoved && e.button === 0) {
             const hasAccounts = Array.isArray(readySelectedAccountIds) && readySelectedAccountIds.length > 0;
             if (!hasAccounts) {
-                showToast(t('messages.selectAccountFirst'), 'error', 2000);
+                showToast('Please select an account first', 'error', 2000);
                 readyMouseDownPt = null; readyMouseMoved = false;
                 return;
             }
@@ -2620,7 +2614,7 @@ window.addEventListener('mouseup', (e) => {
                 if (wx >= 0 && wy >= 0 && wx < img.width && wy < img.height) {
                     const limit = Math.max(0, Number(getReadySelectionLimit()) || 0);
                     if (limit > 0 && readyGlobalSelected.size >= limit) {
-                        showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+                        showToast(`Max ${limit} pixels allowed`, 'error', 2000);
                         readyMouseDownPt = null; readyMouseMoved = false;
                         return;
                     }
@@ -2645,7 +2639,7 @@ window.addEventListener('mouseup', (e) => {
                             const map = getSelectedMap(selItem);
                             const already = map ? map.size : 0;
                             if (limit > 0 && already >= limit) {
-                                showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+                                showToast(`Max ${limit} pixels allowed`, 'error', 2000);
                                 readyMouseDownPt = null; readyMouseMoved = false;
                                 return;
                             }
@@ -3100,14 +3094,14 @@ function setPaletteSwatchTitle(el, p) {
             if (hasSelected && inReady) {
                 const total = getPremiumColorTotalLimit(p.id); // selected accounts total
                 const remain = getPremiumColorRemainingLimit(p.id); // selected accounts remaining (subtracts used)
-                el.title = t('palette.premiumColorTitle', { remain, total });
+                el.title = `Premium color (Remaining: ${remain} / Total: ${total})`;
             } else {
                 const total = getPremiumColorTotalLimitAll(p.id); // all accounts total
                 const remain = getPremiumColorRemainingLimitAll(p.id); // equal to total across all
-                el.title = t('palette.premiumColorTitle', { remain, total });
+                el.title = `Premium color (Remaining: ${remain} / Total: ${total})`;
             }
         } else {
-            el.title = t('palette.colorTitle', { id: p.id });
+            el.title = `Color ${p.id}`;
         }
     } catch { }
 }
@@ -3211,7 +3205,7 @@ function openShopAccount(row) {
         if (shopDropletsInfo) {
             const dRaw = (row && row.droplets != null) ? Number(row.droplets) : null;
             const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-            shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+            shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
             shopDropletsInfo.hidden = false;
         }
     } catch { }
@@ -3224,12 +3218,12 @@ function openShopAccount(row) {
         if (shopMaxQtyEl) shopMaxQtyEl.textContent = '1';
         if (shopRecQtyEl) shopRecQtyEl.textContent = '1';
         const unitMax = 500, unitRec = 500;
-        if (shopMaxPriceEl) shopMaxPriceEl.textContent = '💧 ' + (unitMax * 1) + ' Droplets';
-        if (shopRecPriceEl) shopRecPriceEl.textContent = '💧 ' + (unitRec * 1) + ' Droplets';
+        if (shopMaxPriceEl) shopMaxPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (unitMax * 1) + ' Droplets';
+        if (shopRecPriceEl) shopRecPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (unitRec * 1) + ' Droplets';
         const maxNameEl = document.getElementById('shop-max-name');
-        if (maxNameEl) maxNameEl.textContent = t('shop.maxTitle');
+        if (maxNameEl) maxNameEl.textContent = '+5 Max. Charges';
         const recNameEl = document.getElementById('shop-rec-name');
-        if (recNameEl) recNameEl.textContent = t('shop.recTitle');
+        if (recNameEl) recNameEl.textContent = '+30 Paint Charges';
     } catch { }
     // set account-specific premium colors bitmap for filtering
     try { shopExtraColorsBitmap = Number(row && row.extraColorsBitmap != null ? row.extraColorsBitmap : 0) || 0; } catch { shopExtraColorsBitmap = 0; }
@@ -3259,14 +3253,14 @@ function openShopAccount(row) {
                         });
                         const data = await res.json();
                         if (res.ok && data && data.success === true) {
-                            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+                            showToast('Purchase successful', 'success', 2000);
                             try { await refreshAccountById(account.id); } catch { }
                             try {
                                 if (shopDropletsInfo) {
                                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+            shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                                 }
                             } catch { }
                             try {
@@ -3287,11 +3281,11 @@ function openShopAccount(row) {
                                 updatePremiumPaletteSelectionUi();
                             } catch { }
                         } else {
-                            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+                            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
                             showToast(msg, 'error', 2500);
                         }
                     } catch (e) {
-                        showToast(t('messages.purchaseFail'), 'error', 2500);
+                        showToast('Purchase failed', 'error', 2500);
                     }
                 })();
             };
@@ -3320,14 +3314,14 @@ function parseQty(el) {
 function updatePrice(which) {
     if (which === 'max') {
         const qty = parseQty(shopMaxQtyEl);
-        if (shopMaxPriceEl) shopMaxPriceEl.textContent = '💧 ' + (SHOP_PRICE_MAX * qty) + ' Droplets';
+        if (shopMaxPriceEl) shopMaxPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (SHOP_PRICE_MAX * qty) + ' Droplets';
         try {
             const nameEl = document.getElementById('shop-max-name');
             if (nameEl) nameEl.textContent = '+' + 5 * qty + ' Max. Charges';
         } catch { }
     } else {
         const qty = parseQty(shopRecQtyEl);
-        if (shopRecPriceEl) shopRecPriceEl.textContent = '💧 ' + (SHOP_PRICE_REC * qty) + ' Droplets';
+        if (shopRecPriceEl) shopRecPriceEl.innerHTML = '<i class="fa-solid fa-droplet"></i> ' + (SHOP_PRICE_REC * qty) + ' Droplets';
         try {
             const nameEl = document.getElementById('shop-rec-name');
             if (nameEl) nameEl.textContent = '+' + 30 * qty + ' Paint Charges';
@@ -3423,7 +3417,7 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
         const qty = parseQty(shopMaxQtyEl);
         const account = shopCurrentAccount;
         const token = account && account.token ? String(account.token) : '';
-        if (!token) { showToast(t('messages.accountNotFound'), 'error', 2000); return; }
+        if (!token) { showToast('Account not found', 'error', 2000); return; }
         const res = await fetch('/api/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3431,14 +3425,14 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
         });
         const data = await res.json();
         if (res.ok && data && data.success === true) {
-            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+            showToast('Purchase successful', 'success', 2000);
             try { await refreshAccountById(account.id); } catch { }
             try {
                 if (shopDropletsInfo) {
                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+                    shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                 }
             } catch { }
             // Ensure internal state is refreshed so affordability checks are correct
@@ -3451,11 +3445,11 @@ if (shopMaxPriceEl) shopMaxPriceEl.addEventListener('click', async () => {
                 updatePrice('max');
             } catch { }
         } else {
-            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
             showToast(msg, 'error', 2500);
         }
     } catch {
-        showToast(t('messages.purchaseFail'), 'error', 2500);
+        showToast('Purchase failed', 'error', 2500);
     }
 });
 if (shopRecDecBtn) shopRecDecBtn.addEventListener('click', () => changeQty('rec', -1));
@@ -3468,7 +3462,7 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
         const qty = parseQty(shopRecQtyEl);
         const account = shopCurrentAccount;
         const token = account && account.token ? String(account.token) : '';
-        if (!token) { showToast(t('messages.accountNotFound'), 'error', 2000); return; }
+        if (!token) { showToast('Account not found', 'error', 2000); return; }
         const res = await fetch('/api/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3476,14 +3470,14 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
         });
         const data = await res.json();
         if (res.ok && data && data.success === true) {
-            showToast(t('messages.purchaseSuccess'), 'success', 2000);
+            showToast('Purchase successful', 'success', 2000);
             try { await refreshAccountById(account.id); } catch { }
             try {
                 if (shopDropletsInfo) {
                     const updated = Array.isArray(accountsData) ? accountsData.find(r => r && r.id === account.id) : null;
                     const dRaw = updated && updated.droplets != null ? Number(updated.droplets) : null;
                     const label = Number.isFinite(dRaw) ? String(Math.floor(dRaw)) : '-';
-                    shopDropletsInfo.textContent = '💧 Droplets: ' + label;
+                    shopDropletsInfo.innerHTML = '<i class="fa-solid fa-droplet"></i> Droplets: ' + label;
                 }
             } catch { }
             // Ensure internal state is refreshed so affordability checks are correct
@@ -3496,11 +3490,11 @@ if (shopRecPriceEl) shopRecPriceEl.addEventListener('click', async () => {
                 updatePrice('rec');
             } catch { }
         } else {
-            const msg = (data && data.error) ? String(data.error) : t('messages.purchaseFail');
+            const msg = (data && data.error) ? String(data.error) : 'Purchase failed';
             showToast(msg, 'error', 2500);
         }
     } catch {
-        showToast(t('messages.purchaseFail'), 'error', 2500);
+        showToast('Purchase failed', 'error', 2500);
     }
 });
 if (addAccountBtn) {
@@ -3634,11 +3628,11 @@ function renderAccountsTable(rows) {
     });
 
     try {
-        if (Array.isArray(sortedRows) && pixelPowerEl) {
+        if (Array.isArray(filteredRows) && pixelPowerEl) {
             let totalCount = 0;
             let totalMax = 0;
-            for (let i = 0; i < sortedRows.length; i++) {
-                const r = sortedRows[i];
+            for (let i = 0; i < filteredRows.length; i++) {
+                const r = filteredRows[i];
                 const isActive = r && r.active !== false && !!r.token;
                 if (!isActive) continue;
                 const cRaw = Number(r.pixelCount);
@@ -3649,7 +3643,7 @@ function renderAccountsTable(rows) {
                 if (m != null) totalMax += m;
             }
             try { pixelPowerEl.setAttribute('data-count', String(totalCount)); pixelPowerEl.setAttribute('data-max', String(totalMax)); } catch { }
-            pixelPowerEl.textContent = t('pixel.powerLabel', { count: totalCount, max: totalMax });
+            pixelPowerEl.textContent = `Pixel power: ${totalCount} / ${totalMax}`;
             try { checkFullnessNotify(); } catch { }
         }
     } catch { }
@@ -3809,7 +3803,7 @@ if (accountTokenInput) {
                         return !sameId && String(row.token || '') === token;
                     });
                     if (dup) {
-                        showToast(t('messages.tokenAlreadyExists'), 'error', 2500);
+                        showToast('This token already exists', 'error', 2500);
                         return;
                     }
                 } catch { }
@@ -3874,8 +3868,7 @@ let previewSourceImage = null;
 
 function updateDitherButtonUi() {
     if (!imgDitherToggle) return;
-    const key = imgDitherEnabled ? 'preview.ditheringOn' : 'preview.ditheringOff';
-    imgDitherToggle.textContent = t(key);
+    imgDitherToggle.textContent = imgDitherEnabled ? 'Dithering: ON' : 'Dithering: OFF';
     imgDitherToggle.dataset.state = imgDitherEnabled ? 'on' : 'off';
 }
 
@@ -4014,7 +4007,7 @@ function updateSizeFromScale() {
         const s = Math.min(MAX_DIM / nw, MAX_DIM / nh);
         nw = Math.max(1, Math.round(nw * s));
         nh = Math.max(1, Math.round(nh * s));
-        try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { }
+        try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { }
     }
     imgWidthInput.value = String(nw);
     imgHeightInput.value = String(nh);
@@ -4027,7 +4020,7 @@ function updateHeightFromWidth() {
     if (!imgKeepRatioInput.checked) { drawPreview(); return; }
     const w0 = previewSourceImage.naturalWidth | 0, h0 = previewSourceImage.naturalHeight | 0;
     let nh = Math.round(nw * h0 / w0);
-    if (nh > MAX_DIM) { nh = MAX_DIM; nw = Math.round(nh * w0 / h0); imgWidthInput.value = String(nw); try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+    if (nh > MAX_DIM) { nh = MAX_DIM; nw = Math.round(nh * w0 / h0); imgWidthInput.value = String(nw); try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
     imgHeightInput.value = String(nh);
     const pct = Math.round(nw / w0 * 100);
     imgScaleInput.value = String(pct);
@@ -4046,7 +4039,7 @@ function updateWidthFromHeight() {
     }
     const w0 = previewSourceImage.naturalWidth | 0, h0 = previewSourceImage.naturalHeight | 0;
     let nw = Math.round(nh * w0 / h0);
-    if (nw > MAX_DIM) { nw = MAX_DIM; nh = Math.round(nw * h0 / w0); imgHeightInput.value = String(nh); try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+    if (nw > MAX_DIM) { nw = MAX_DIM; nh = Math.round(nw * h0 / w0); imgHeightInput.value = String(nh); try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
     imgWidthInput.value = String(nw);
     const pct = Math.round(nh / h0 * 100);
     imgScaleInput.value = String(pct);
@@ -4073,7 +4066,7 @@ function buildFillPaletteUi() {
     // Transparent option (none)
     const swNone = document.createElement('div');
     swNone.className = 'palette-swatch modal-palette-swatch transparent selected';
-    swNone.title = t('palette.transparentTitle');
+    swNone.title = 'Transparent';
     swNone.setAttribute('role', 'button');
     swNone.addEventListener('click', () => {
         imgFillColorId = null;
@@ -4139,7 +4132,7 @@ if (imgPreviewApply) imgPreviewApply.addEventListener('click', async () => {
         if (!previewSourceImage) return;
         let targetW = clampDim(parseInt(imgWidthInput.value || '1', 10));
         let targetH = clampDim(parseInt(imgHeightInput.value || '1', 10));
-        if (targetW > MAX_DIM || targetH > MAX_DIM) { try { showToast(t('preview.maxSizeExceeded'), 'error', 2000); } catch { } }
+        if (targetW > MAX_DIM || targetH > MAX_DIM) { try { showToast('Max size exceeded (1000px)', 'error', 2000); } catch { } }
         const off = document.createElement('canvas');
         off.width = targetW; off.height = targetH;
         const octx = off.getContext('2d', { willReadFrequently: true });
@@ -4237,7 +4230,7 @@ const readyAccountList = document.getElementById('ready-account-list');
         if (!autoStart) {
             return;
         }
-        showToast(t('messages.tokenPastedFromExtension'), 'success', 1200);
+        showToast('Token captured from extension', 'success', 1200);
         try {
             const rp = document.getElementById('ready-popup');
             const isOpen = rp && !rp.hidden;
@@ -4411,7 +4404,7 @@ function updateReadySelectionLabel() {
     const limit = Math.max(0, Number(getReadySelectionLimit()) || 0);
     const count = selected;
     try { readyPixelEl.setAttribute('data-count', String(count)); readyPixelEl.setAttribute('data-max', String(limit)); } catch { }
-    readyPixelEl.textContent = t('pixel.powerLabel', { count, max: limit });
+    readyPixelEl.textContent = `Pixel power: ${count} / ${limit}`;
     try { updateAutoSelectButtonLabel(); } catch { }
 }
 
@@ -4422,7 +4415,7 @@ function updateAutoSelectButtonLabel() {
     const shouldDelete = (limit > 0 && selected >= limit);
     autoSelectDeleteMode = !!shouldDelete;
     try {
-        autoSelectBtn.textContent = shouldDelete ? t('ready.deleteAllSelected') : t('ready.autoSelect');
+        autoSelectBtn.textContent = shouldDelete ? 'Delete all selected' : 'Auto select';
     } catch {
         autoSelectBtn.textContent = shouldDelete ? 'Delete all selected' : 'Auto select';
     }
@@ -4457,7 +4450,7 @@ function renderReadyAccountList() {
         btn.type = 'button';
         btn.className = 'app-btn';
         const isSelected = readySelectedAccountIds.indexOf(row.id) !== -1;
-        btn.textContent = (isSelected ? '✓ ' : '') + (row.name || t('ready.accountLabelDefault')) + ' — ' + String(count) + ' / ' + String(max);
+        btn.textContent = (isSelected ? '✓ ' : '') + (row.name || 'Account') + ' — ' + String(count) + ' / ' + String(max);
         btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
         btn.addEventListener('click', () => {
             const isSelectedNow = readySelectedAccountIds.indexOf(row.id) !== -1;
@@ -4675,7 +4668,7 @@ if (autoSelectBtn) {
         try { updatePaletteSelectionUi(); } catch { }
 
         if (!Array.isArray(readySelectedAccountIds) || readySelectedAccountIds.length === 0) {
-            showToast(t('messages.selectAccountFirst'), 'error', 2000);
+            showToast('Please select an account first', 'error', 2000);
             return;
         }
 
@@ -4908,12 +4901,12 @@ if (startBtn) {
         const hasAccounts = getSelectedAccountsSortedByCapacityDesc().length > 0;
         const hasAnyPixel = readyGlobalMode ? (readyGlobalSelected.size > 0) : (getReadySelectedCount() > 0);
         if (!(hasAccounts && hasAnyPixel)) {
-            showToast(t('messages.startRequirementsMissing'), 'error', 2500);
+            showToast('Select account and pixels first', 'error', 2500);
             try { updateStartEnabled(); } catch { }
             return;
         }
         const sel = (selectedIndex >= 0 && selectedIndex < signItems.length) ? signItems[selectedIndex] : null;
-        if (!readyGlobalMode && !sel) { showToast(t('messages.noSelectedImage'), 'error', 2000); return; }
+        if (!readyGlobalMode && !sel) { showToast('No selected image', 'error', 2000); return; }
         const data = buildSelectedExportForItem(sel);
 
         // Her durumda (tek tile veya değil) pikselleri world koordinata göre area/no bazında gruplandır
@@ -4989,7 +4982,7 @@ if (startBtn) {
                                 continue;
                             } else {
                                 hadRequestError = true;
-                                showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || t('messages.errorGeneric')), 'error', 3000);
+                                showToast(r.payload ? JSON.stringify(r.payload) : (r.text || r.error || 'An error occurred'), 'error', 3000);
                                 break;
                             }
                         } else {
@@ -5003,7 +4996,7 @@ if (startBtn) {
                     if (offset < total && !hadRequestError) missingTotal += (total - offset);
                 }
                 if (paintedAny) {
-                    showToast(t('messages.painted'), 'success', 1800);
+                    showToast('Painted', 'success', 1800);
                     try { clearAllReadySelections(); } catch { }
                     try { readyGlobalMode = false; } catch { }
                     if (!autoMode) {
@@ -5012,7 +5005,7 @@ if (startBtn) {
                     try { updateStartEnabled(); } catch { }
                 }
                 if (missingTotal > 0) {
-                    showToast(t('messages.insufficientPixelPower', { n: missingTotal }), 'error', 3000);
+                    showToast(`Insufficient pixel power: ${missingTotal} pixels left`, 'error', 3000);
                 }
                 try { await loadAccounts(); } catch { }
                 try { updateReadySelectionLabel(); } catch { }
@@ -5141,7 +5134,7 @@ function showMaxReachedToastOnceForSpace(limit) {
         if (spacePaintLimitWarned) return;
         spacePaintLimitWarned = true;
     }
-    showToast(t('messages.maxPixelsReached', { limit }), 'error', 2000);
+    showToast(`Max ${limit} pixels allowed`, 'error', 2000);
 }
 
 function maybeAddSelectionAtHover() {
@@ -5152,9 +5145,9 @@ function maybeAddSelectionAtHover() {
         const hasAccounts = Array.isArray(readySelectedAccountIds) && readySelectedAccountIds.length > 0;
         if (!hasAccounts) {
             if (spacePaintHeld) {
-                if (!spacePaintAccountWarned) { showToast(t('messages.selectAccountFirst'), 'error', 2000); spacePaintAccountWarned = true; }
+                if (!spacePaintAccountWarned) { showToast('Please select an account first', 'error', 2000); spacePaintAccountWarned = true; }
             } else {
-                showToast(t('messages.selectAccountFirst'), 'error', 2000);
+                showToast('Please select an account first', 'error', 2000);
             }
             return false;
         }

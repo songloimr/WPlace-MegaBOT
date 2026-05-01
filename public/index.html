@@ -14,78 +14,73 @@
   <canvas id="selection-overlay"></canvas>
   <div id="pixel-selected-list" hidden></div>
   <div id="top-toolbar">
-  <div id="sound-control">
-    <button id="sound-toggle" class="app-btn" type="button" title="" aria-label="">🔊</button>
-    <div class="sound-slider" role="group" aria-label="Sound settings">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#e5e7eb;opacity:0.9;font-size:12px">
-        <span data-i18n=""></span>
-        <div id="sound-volume" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Volume">
-          <div class="slider-track"></div>
-          <div class="slider-fill"></div>
-          <div class="slider-thumb"></div>
-        </div>
-      </div>
-    </div>
-  </div>
     <div id="control-panel">
       <div class="controls-row">
-        <button id="btn-accounts" class="app-btn" type="button" data-i18n="nav.accounts">Accounts</button>
-        <div id="pixel-power" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
+        <button id="btn-accounts" class="app-btn" type="button">Accounts</button>
+        <div id="pixel-power" role="status" aria-live="polite" data-count="0" data-max="0">Pixel power: 0 / 0</div>
       </div>
       <div>
-        <button id="btn-ready" class="app-btn" type="button" disabled data-i18n="ready.prepare">Ready</button>
+        <button id="btn-ready" class="app-btn" type="button" disabled>Ready</button>
         <div id="ready-popup" hidden>
+          <!-- 1. Header -->
           <div class="ready-header">
-            <button id="btn-ready-account" class="app-btn" type="button" data-i18n="ready.selectAccount">Select account</button>
-            <div id="ready-pixel" role="status" aria-live="polite" data-i18n-dynamic="pixel.powerLabel" data-count="0" data-max="0">Pixel power: 0 / 0</div>
+            <button id="btn-ready-account" class="app-btn" type="button">Select account</button>
+            <div id="ready-pixel" role="status" aria-live="polite" data-count="0" data-max="0">Pixel power: 0 / 0</div>
           </div>
-          <div class="controls-row" id="auto-mode-controls">
-            <div class="select-mode-wrap">
-              <span id="auto-mode-label-left" class="select-mode-label" data-i18n="ready.autoMode.off">Auto mode off</span>
-              <button id="auto-mode-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto mode">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="auto-mode-label-right" class="select-mode-label" data-i18n="ready.autoMode.on">Auto mode on</span>
-            </div>
-            <div class="select-mode-wrap" style="margin-left:12px;">
-              <span id="auto-start-label-left" class="select-mode-label" data-i18n="ready.autoStart.off">Auto start off</span>
-              <button id="auto-start-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto start on token">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="auto-start-label-right" class="select-mode-label" data-i18n="ready.autoStart.on">Auto start on</span>
-              <span id="auto-start-countdown" class="select-mode-label" style="margin-left:8px; color:#ffd700; font-weight:bold;"></span>
+
+          <!-- 2. Draw Mode -->
+          <div id="draw-mode-group" class="ready-section">
+            <span class="ready-section-label">Draw mode</span>
+            <div class="filter-chip-group">
+              <button class="filter-chip active" data-draw-mode="multi">Select from start</button>
+              <button class="filter-chip" data-draw-mode="frame">Select from outline</button>
+              <button class="filter-chip" data-draw-mode="color">Select by colour</button>
             </div>
           </div>
-          <div class="controls-row" id="human-delay-controls" style="margin-top:8px; justify-content: center; gap: 12px; flex-wrap: wrap;">
-            <div class="select-mode-wrap">
-              <span id="human-delay-label-left" class="select-mode-label" data-i18n="ready.humanDelay.off">Human delay off</span>
-              <button id="human-delay-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Human delay">
-                <span class="select-mode-knob"></span>
-              </button>
-              <span id="human-delay-label-right" class="select-mode-label" data-i18n="ready.humanDelay.on">Human delay on</span>
+
+          <!-- 3. Settings -->
+          <div class="ready-section ready-settings">
+            <div class="ready-setting-row">
+              <div class="select-mode-wrap">
+                <button id="auto-mode-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto mode">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="auto-mode-label-right" class="select-mode-label">Auto mode</span>
+              </div>
             </div>
-            <div id="human-delay-inputs" style="display:flex; align-items:center; gap:8px;" hidden>
-              <input id="human-min" type="number" min="0" value="30" style="width:60px; text-align:center;" placeholder="Min" aria-label="Min seconds" />
-              <span>-</span>
-              <input id="human-max" type="number" min="0" value="60" style="width:60px; text-align:center;" placeholder="Max" aria-label="Max seconds" />
-              <span style="font-size:12px; opacity:0.8;">sec</span>
+            <div class="ready-setting-row">
+              <div class="select-mode-wrap">
+                <button id="auto-start-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Auto start on token">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="auto-start-label-right" class="select-mode-label">Auto start</span>
+                <span id="auto-start-countdown" class="select-mode-label" style="margin-left:8px; color:#ffd700; font-weight:bold;"></span>
+              </div>
+            </div>
+            <div class="ready-setting-row" id="human-delay-controls">
+              <div class="select-mode-wrap">
+                <button id="human-delay-toggle" class="select-mode-track" type="button" role="switch" aria-checked="false" aria-label="Human delay">
+                  <span class="select-mode-knob"></span>
+                </button>
+                <span id="human-delay-label-right" class="select-mode-label">Human delay</span>
+              </div>
+              <div id="human-delay-inputs" hidden>
+                <input style="width: 60px;" id="human-min" type="number" min="0" value="30" placeholder="Min" />
+                <span>&ndash;</span>
+                <input style="width: 60px;" id="human-max" type="number" min="0" value="60" placeholder="Max" />
+                <span>sec</span>
+              </div>
             </div>
           </div>
+
+          <!-- 4. Actions -->
+          <div class="ready-actions">
+            <button id="btn-auto-select" class="app-btn" type="button">Auto select</button>
+            <button id="start" class="app-btn start-btn" type="button">Start</button>
+          </div>
+
+          <!-- 5. Account list -->
           <div id="ready-account-list" hidden></div>
-          <div class="controls-row" hidden>
-            <button id="btn-auto-select-accounts" class="app-btn" type="button" data-i18n="ready.autoSelectAccounts">Auto select account</button>
-          </div>
-          <div class="controls-row">
-            <button id="btn-auto-select" class="app-btn" type="button" data-i18n="ready.autoSelect">Auto select</button>
-            <button id="start" class="app-btn" type="button" data-i18n="ready.start">Start</button>
-          </div>
-          <div class="controls-row" id="select-mode-controls">
-            <div class="select-mode-wrap">
-              <span id="select-mode-label-left" class="select-mode-label active" data-i18n="ready.selectMode.multi">Select from start</span>
-              <span id="select-mode-label-right" class="select-mode-label" data-i18n="ready.selectMode.frame">Select from outline</span>
-              <span id="select-mode-label-color" class="select-mode-label" data-i18n="ready.selectMode.color">Select by colour</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
