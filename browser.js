@@ -158,13 +158,16 @@ async function startBrowser() {
                 })
                 body = patchFunction(body, 'isLinearMovement&&', (body, name) => {
                     const arr = [
-                        'AQADACMINQEFAPIC1gYFAAAAIpkAJwAzG4oICABNBegD1l4AAAEC5g==',
-                        'AQADAD0GXgIQANACywYFAAAAB4cARQBhLXgHaAAvBegD1l4AAAEC5g==',
-                        'AQADAEcFSgEDALoC1wYFAAAAEW0AOQBAH0AEuAGzBegD1l4AAAEDdA==',
-                        'AQAHACUXOwEHAN4C3QYFAAAAHeUAKAA6KNwJ7wA2BegD1l4AAAEAlQ==',
-                        'AQAEADkOSQEFAL4CyQYFAAAAPgYAPwBVJ9gJoAB0BegD1l4AAAEAlQ==',
-                        'AQADAD8JYAIEAPUC3QYFABdNPD8AOwBZMkYH4QBfBegD1l4AAAEAlQ==',
-                        'AQADADwGUgEEAL8CxwYFAAAAC2QAOABHJKQG1wBsBegD1l4AAAEDBw=='
+                        'AQAyAYIh/wEJAc8CygYFAP////8C+xP8JiomRQCZBegD1l4AAAEGSw==',
+                        'AQAiAScV/wEGAhUCygYFAP//bcgCIw1mK3omPQYhBegD1l4AAAEGSw==',
+                        'AQAuAWAJ/wEDAe8C1gYFADtJkaECTA28LH4mMgYPBegD1l4AAAEGSw==',
+                        'AQAkAY0o/wEAAhECxwYFAEGXjikC9hL/I/omOAjXBegD1l4AAAEGSw==',
+                        'AQAyAdEZ/wEAAe0CzwYFAE1665ADkxeoJIYmRQBbBegD1l4AAAEGSw==',
+                        'AQAaAhwY/wEHAdsC2gYFAHRoZRAEJBt+Ll4mRQCGBegD1l4AAAEGSw==',
+                        'AQAUAk4Q/wEEAggC3QYFAD7vO9YETRs9ORImQABVBegD1l4AAAEGSw==',
+                        'AQAkAXYO/wEFAhACwwYFAHiVy9cCwRGxKxYmQgNjBegD1l4AAAEGSw==',
+                        'AQAJAjoN/wEKAfwCxwYFACQjWMsEWR00PWgmRQK0BegD1l4AAAEGSw==',
+                        'AQAGAekS/wEAAgUC0AYFAC7oT6IDshihG9omRRnqBegD1l4AAAEGSw=='
                     ]
                     const random = arr[Math.floor(Math.random() * arr.length)]
 
